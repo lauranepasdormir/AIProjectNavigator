@@ -8,6 +8,9 @@ import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatNavigation } from "@/components/ChatNavigation";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function ChatForm() {
   // State management
@@ -15,6 +18,38 @@ export default function ChatForm() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  
+  // Toast notifications
+  const { toast } = useToast();
+  
+  // Mutation to save project to database
+  const submitProjectMutation = useMutation({
+    mutationFn: async (projectData: Record<string, string>) => {
+      const response = await apiRequest(
+        'POST',
+        '/api/project-submissions',
+        projectData
+      );
+      return response.json();
+    },
+    onSuccess: () => {
+      setIsSaved(true);
+      toast({
+        title: "Success!",
+        description: "Your project has been saved to the database.",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error('Error saving project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save your project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
   
   // Refs
   const chatAreaRef = useRef<HTMLDivElement>(null);
