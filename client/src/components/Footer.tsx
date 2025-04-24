@@ -10,10 +10,9 @@ export function Footer() {
           <img 
             src="/dv-logo.png" 
             alt="Digital Village Logo" 
-            className="h-8 mr-3"
+            className="h-8"
             onError={(e) => { console.error("Image failed to load:", e); }}
           />
-          <span className="font-semibold text-blue-600">Digital Village</span>
         </div>
         <div className="text-sm text-gray-500">
           © {currentYear} Digital Village Pty Ltd. All rights reserved.
