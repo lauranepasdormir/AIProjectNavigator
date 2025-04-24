@@ -182,6 +182,11 @@ export default function ChatForm() {
     downloadMarkdown(markdown, filename);
   };
   
+  // Save project to database
+  const handleSaveToDatabase = () => {
+    submitProjectMutation.mutate(answers);
+  };
+  
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);
   const htmlContent = formatMarkdownToHtml(markdownContent);
@@ -230,8 +235,11 @@ export default function ChatForm() {
           isComplete={isComplete}
           onShowPreview={handleShowPreview}
           onDownload={handleDownload}
+          onSave={handleSaveToDatabase}
           onBackToChat={handleBackToChat}
           isPreviewMode={isPreviewMode}
+          isSaved={isSaved}
+          isSaving={submitProjectMutation.isPending}
         />
       </div>
     </div>

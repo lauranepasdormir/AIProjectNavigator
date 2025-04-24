@@ -1,7 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, EyeIcon, Download, ArrowLeft } from "lucide-react";
+import { Send, EyeIcon, Download, ArrowLeft, Database } from "lucide-react";
 
 interface ChatInputProps {
   placeholder: string;
@@ -9,8 +9,11 @@ interface ChatInputProps {
   isComplete?: boolean;
   onShowPreview?: () => void;
   onDownload?: () => void;
+  onSave?: () => void;
   onBackToChat?: () => void;
   isPreviewMode?: boolean;
+  isSaved?: boolean;
+  isSaving?: boolean;
 }
 
 export function ChatInput({
@@ -19,8 +22,11 @@ export function ChatInput({
   isComplete = false,
   onShowPreview,
   onDownload,
+  onSave,
   onBackToChat,
-  isPreviewMode = false
+  isPreviewMode = false,
+  isSaved = false,
+  isSaving = false
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
   
@@ -34,7 +40,7 @@ export function ChatInput({
   
   if (isPreviewMode) {
     return (
-      <div className="border-t p-4 bg-white flex justify-between shadow-inner">
+      <div className="border-t p-4 bg-white flex flex-wrap justify-between shadow-inner gap-2">
         <Button
           variant="outline"
           onClick={onBackToChat}
@@ -43,12 +49,23 @@ export function ChatInput({
           <ArrowLeft className="h-4 w-4" /> Return to Chat
         </Button>
         
-        <Button
-          onClick={onDownload}
-          className="bg-secondary hover:bg-secondary/90 gap-2 px-5 py-6 text-lg font-medium"
-        >
-          <Download className="h-5 w-5" /> Download Markdown
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={onSave}
+            disabled={isSaved || isSaving}
+            className="bg-primary hover:bg-primary/90 gap-2 px-5 py-6 text-lg font-medium"
+          >
+            <Database className="h-5 w-5" /> 
+            {isSaving ? 'Saving...' : isSaved ? 'Saved to Database' : 'Save to Database'}
+          </Button>
+          
+          <Button
+            onClick={onDownload}
+            className="bg-secondary hover:bg-secondary/90 gap-2 px-5 py-6 text-lg font-medium"
+          >
+            <Download className="h-5 w-5" /> Download Markdown
+          </Button>
+        </div>
       </div>
     );
   }
