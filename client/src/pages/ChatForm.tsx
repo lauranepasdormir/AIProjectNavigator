@@ -1,0 +1,202 @@
+import { useState, useEffect, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
+import { ToyBrick } from "lucide-react";
+import { ChatMessage } from "@shared/schema";
+import { questions } from "@/lib/questions";
+import { generateMarkdown, formatMarkdownToHtml, downloadMarkdown } from "@/lib/markdown";
+import { ChatBubble } from "@/components/ChatBubble";
+import { ChatInput } from "@/components/ChatInput";
+import { ChatNavigation } from "@/components/ChatNavigation";
+import { MarkdownPreview } from "@/components/MarkdownPreview";
+
+export default function ChatForm() {
+  // State management
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
+  
+  // Refs
+  const chatAreaRef = useRef<HTMLDivElement>(null);
+  
+  // Add initial bot message when component mounts
+  useEffect(() => {
+    if (messages.length === 0) {
+      const welcomeMessage: ChatMessage = {
+        id: uuidv4(),
+        type: 'bot',
+        content: "Hi there! I'll help you submit information about your AI project for the showcase. Let's get started! " + questions[0].text,
+        timestamp: new Date()
+      };
+      
+      setMessages([welcomeMessage]);
+    }
+  }, [messages.length]);
+  
+  // Scroll to bottom of chat area when messages change
+  useEffect(() => {
+    if (chatAreaRef.current) {
+      chatAreaRef.current.scrollTop = chatAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
+  
+  // Check if all questions have been answered
+  const isComplete = currentQuestion >= questions.length;
+  
+  // Add a bot message to the chat
+  const addBotMessage = (content: string) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'bot',
+      content,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
+  
+  // Add a user message to the chat
+  const addUserMessage = (content: string) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'user',
+      content,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
+  
+  // Handle user input submission
+  const handleSubmit = (value: string) => {
+    // Skip empty required answers
+    if (!value && questions[currentQuestion]?.required) {
+      addBotMessage("This field is required. Please provide an answer.");
+      return;
+    }
+    
+    // Add user message
+    addUserMessage(value);
+    
+    // Save answer
+    const updatedAnswers = { ...answers };
+    updatedAnswers[questions[currentQuestion].id] = value;
+    setAnswers(updatedAnswers);
+    
+    // Move to next question
+    setCurrentQuestion(prev => prev + 1);
+    
+    // If there are more questions, show the next one
+    if (currentQuestion + 1 < questions.length) {
+      setTimeout(() => {
+        addBotMessage(questions[currentQuestion + 1].text);
+      }, 500);
+    } else {
+      // Show completion message
+      setTimeout(() => {
+        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+      }, 500);
+    }
+  };
+  
+  // Handle previous button click
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(prev => prev - 1);
+      addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
+    }
+  };
+  
+  // Handle skip button click
+  const handleSkip = () => {
+    if (!questions[currentQuestion].required) {
+      addUserMessage("Skip");
+      
+      const updatedAnswers = { ...answers };
+      updatedAnswers[questions[currentQuestion].id] = '';
+      setAnswers(updatedAnswers);
+      
+      setCurrentQuestion(prev => prev + 1);
+      
+      if (currentQuestion + 1 < questions.length) {
+        setTimeout(() => {
+          addBotMessage(questions[currentQuestion + 1].text);
+        }, 500);
+      } else {
+        setTimeout(() => {
+          addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+        }, 500);
+      }
+    }
+  };
+  
+  // Show preview
+  const handleShowPreview = () => {
+    setIsPreviewMode(true);
+  };
+  
+  // Return to chat
+  const handleBackToChat = () => {
+    setIsPreviewMode(false);
+  };
+  
+  // Generate and download markdown
+  const handleDownload = () => {
+    const markdown = generateMarkdown(answers);
+    const filename = `${answers.title || 'ai-project'}.md`;
+    downloadMarkdown(markdown, filename);
+  };
+  
+  // Generate markdown content
+  const markdownContent = generateMarkdown(answers);
+  const htmlContent = formatMarkdownToHtml(markdownContent);
+  
+  return (
+    <div className="flex flex-col h-screen max-w-3xl mx-auto bg-white shadow-lg">
+      {/* Header */}
+      <header className="px-4 py-3 bg-primary text-white flex items-center shadow-md">
+        <ToyBrick className="mr-2 h-5 w-5" />
+        <h1 className="text-xl font-semibold">AI Project Showcase Form</h1>
+      </header>
+      
+      {/* Main Content */}
+      {isPreviewMode ? (
+        <MarkdownPreview 
+          htmlContent={htmlContent} 
+          title={answers.title || 'Untitled Project'} 
+        />
+      ) : (
+        <div 
+          ref={chatAreaRef}
+          className="flex-1 overflow-y-auto p-4 space-y-4"
+        >
+          {messages.map(message => (
+            <ChatBubble key={message.id} message={message} />
+          ))}
+        </div>
+      )}
+      
+      {/* Navigation Area - Only show when not in preview mode */}
+      {!isPreviewMode && !isComplete && (
+        <ChatNavigation 
+          currentQuestion={currentQuestion}
+          totalQuestions={questions.length}
+          isCurrentQuestionRequired={currentQuestion < questions.length && questions[currentQuestion].required}
+          onPrevious={handlePrevious}
+          onSkip={handleSkip}
+        />
+      )}
+      
+      {/* Input Area */}
+      <ChatInput 
+        placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
+        onSubmit={handleSubmit}
+        isComplete={isComplete}
+        onShowPreview={handleShowPreview}
+        onDownload={handleDownload}
+        onBackToChat={handleBackToChat}
+        isPreviewMode={isPreviewMode}
+      />
+    </div>
+  );
+}
