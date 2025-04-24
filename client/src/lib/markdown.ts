@@ -1,4 +1,5 @@
 interface ProjectData {
+  username?: string;
   title?: string;
   description?: string;
   problem?: string;
@@ -11,6 +12,10 @@ interface ProjectData {
 
 export function generateMarkdown(data: ProjectData): string {
   let markdown = `# ${data.title || 'Untitled Project'}\n\n`;
+  
+  if (data.username) {
+    markdown += `## Submitted by\n${data.username}\n\n`;
+  }
   
   if (data.description) {
     markdown += `## Description\n${data.description}\n\n`;

@@ -7,6 +7,12 @@ export interface Question {
 
 export const questions: Question[] = [
   {
+    id: 'username',
+    text: "Before we get started, what's your name or username? We'll use this to identify your project submission.",
+    required: true,
+    placeholder: "Enter your name or username"
+  },
+  {
     id: 'title',
     text: "What's the title of your AI project?",
     required: true,

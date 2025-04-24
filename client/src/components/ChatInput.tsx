@@ -56,7 +56,7 @@ export function ChatInput({
             className="bg-primary hover:bg-primary/90 gap-2 px-5 py-6 text-lg font-medium"
           >
             <Database className="h-5 w-5" /> 
-            {isSaving ? 'Saving...' : isSaved ? 'Saved to Database' : 'Save to Database'}
+            {isSaving ? 'Saving...' : isSaved ? 'Project Saved' : 'Save My Project'}
           </Button>
           
           <Button
@@ -76,7 +76,7 @@ export function ChatInput({
         <p className="text-center text-gray-700 mb-3">You've completed all questions!</p>
         <Button
           onClick={onShowPreview}
-          className="w-full bg-secondary hover:bg-secondary/90 gap-2 py-6 text-lg font-medium"
+          className="w-full bg-primary hover:bg-primary/90 gap-2 py-6 text-lg font-medium"
         >
           <EyeIcon className="h-5 w-5" /> Show Preview
         </Button>
