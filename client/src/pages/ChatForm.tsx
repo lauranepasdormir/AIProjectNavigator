@@ -152,10 +152,10 @@ export default function ChatForm() {
   const htmlContent = formatMarkdownToHtml(markdownContent);
   
   return (
-    <div className="flex flex-col h-screen max-w-3xl mx-auto bg-white shadow-lg">
+    <div className="flex flex-col min-h-screen max-w-3xl mx-auto bg-white shadow-lg my-8 rounded-lg overflow-hidden">
       {/* Header */}
-      <header className="px-4 py-3 bg-primary text-white flex items-center shadow-md">
-        <ToyBrick className="mr-2 h-5 w-5" />
+      <header className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
+        <ToyBrick className="mr-3 h-6 w-6" />
         <h1 className="text-xl font-semibold">AI Project Showcase Form</h1>
       </header>
       
@@ -188,15 +188,17 @@ export default function ChatForm() {
       )}
       
       {/* Input Area */}
-      <ChatInput 
-        placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
-        onSubmit={handleSubmit}
-        isComplete={isComplete}
-        onShowPreview={handleShowPreview}
-        onDownload={handleDownload}
-        onBackToChat={handleBackToChat}
-        isPreviewMode={isPreviewMode}
-      />
+      <div className="mt-auto">
+        <ChatInput 
+          placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
+          onSubmit={handleSubmit}
+          isComplete={isComplete}
+          onShowPreview={handleShowPreview}
+          onDownload={handleDownload}
+          onBackToChat={handleBackToChat}
+          isPreviewMode={isPreviewMode}
+        />
+      </div>
     </div>
   );
 }

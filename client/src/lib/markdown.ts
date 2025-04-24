@@ -45,9 +45,10 @@ export function generateMarkdown(data: ProjectData): string {
 
 export function formatMarkdownToHtml(markdown: string): string {
   return markdown
-    .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mb-3 text-gray-800">$1</h1>')
-    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mb-2 mt-4 text-gray-700">$1</h2>')
-    .replace(/\n/g, '<br>');
+    .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mb-3 text-gray-800 pb-2 border-b border-gray-200">$1</h1>')
+    .replace(/^## (.*$)/gm, '<h2 class="text-xl font-semibold mb-3 mt-5 text-primary">$1</h2>')
+    .replace(/\n/g, '<br>')
+    .replace(/<br><br>/g, '<div class="my-2"></div>'); // Add more spacing between paragraphs
 }
 
 export function downloadMarkdown(content: string, filename: string): void {

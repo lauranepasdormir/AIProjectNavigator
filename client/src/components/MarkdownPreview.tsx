@@ -7,10 +7,10 @@ interface MarkdownPreviewProps {
 
 export function MarkdownPreview({ htmlContent, title }: MarkdownPreviewProps) {
   return (
-    <div className="flex-1 overflow-y-auto p-4 bg-gray-50">
-      <Card className="mb-4">
-        <CardContent className="pt-6">
-          <h2 className="text-lg font-semibold mb-2 text-primary">
+    <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
+      <Card className="mb-4 shadow-md border border-gray-100">
+        <CardContent className="pt-6 px-6 pb-8">
+          <h2 className="text-xl font-semibold mb-4 text-primary border-b pb-2">
             Preview of Your AI Project Showcase
           </h2>
           <div 

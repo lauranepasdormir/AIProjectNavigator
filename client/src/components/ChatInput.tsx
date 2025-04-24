@@ -34,33 +34,37 @@ export function ChatInput({
   
   if (isPreviewMode) {
     return (
-      <div className="border-t p-3 bg-white flex justify-between">
+      <div className="border-t p-4 bg-white flex justify-between shadow-inner">
         <Button
           variant="outline"
           onClick={onBackToChat}
-          className="gap-2"
+          className="gap-2 px-4"
         >
           <ArrowLeft className="h-4 w-4" /> Return to Chat
         </Button>
         
         <Button
           onClick={onDownload}
-          className="bg-secondary hover:bg-secondary/90 gap-2"
+          className="bg-secondary hover:bg-secondary/90 gap-2 px-5 py-6 text-lg font-medium"
         >
-          <Download className="h-4 w-4" /> Download Markdown
+          <Download className="h-5 w-5" /> Download Markdown
         </Button>
       </div>
     );
   }
   
+  // Debug logging
+  console.log("Chat input isComplete:", isComplete);
+  
   if (isComplete) {
     return (
-      <div className="border-t p-3 bg-white">
+      <div className="border-t p-4 bg-white shadow-inner">
+        <p className="text-center text-gray-700 mb-3">You've completed all questions!</p>
         <Button
           onClick={onShowPreview}
-          className="w-full bg-secondary hover:bg-secondary/90 gap-2"
+          className="w-full bg-secondary hover:bg-secondary/90 gap-2 py-6 text-lg font-medium"
         >
-          <EyeIcon className="h-4 w-4" /> Show Preview
+          <EyeIcon className="h-5 w-5" /> Show Preview
         </Button>
       </div>
     );
