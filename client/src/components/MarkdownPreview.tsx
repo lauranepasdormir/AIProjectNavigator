@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PencilIcon, SaveIcon, XIcon } from "lucide-react";
+import { PencilIcon, SaveIcon, XIcon, FileEditIcon, EyeIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Question, questions } from "@/lib/questions";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 interface MarkdownPreviewProps {
   htmlContent: string;
@@ -114,11 +116,32 @@ export function MarkdownPreview({
     <div className="flex-1 overflow-y-auto p-6 bg-gray-50">
       <Card className="mb-4 shadow-md border border-gray-100">
         <CardContent className="pt-6 px-6 pb-8">
-          <h2 className="text-xl font-semibold mb-4 text-primary border-b pb-2">
-            Preview of Your AI Project Showcase
-          </h2>
+          <div className="flex items-center justify-between mb-4 border-b pb-2">
+            <h2 className="text-xl font-semibold text-primary">
+              Preview of Your AI Project Showcase
+            </h2>
+            
+            {onUpdateAnswer && (
+              <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Label htmlFor="view-mode" className="text-sm font-medium">
+                    {viewMode === 'edit' ? 
+                      <span className="flex items-center"><FileEditIcon className="h-4 w-4 mr-1" /> Edit</span> : 
+                      <span className="flex items-center"><EyeIcon className="h-4 w-4 mr-1" /> Rendered</span>
+                    }
+                  </Label>
+                  <Switch
+                    id="view-mode"
+                    checked={viewMode === 'preview'}
+                    onCheckedChange={(checked) => setViewMode(checked ? 'preview' : 'edit')}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
           
-          {onUpdateAnswer ? (
+          {/* Display edit view or preview based on mode */}
+          {onUpdateAnswer && viewMode === 'edit' ? (
             <div className="prose max-w-none">
               {renderAnswerSections()}
             </div>
