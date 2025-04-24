@@ -192,7 +192,7 @@ export default function ChatForm() {
   const htmlContent = formatMarkdownToHtml(markdownContent);
   
   return (
-    <div className="flex justify-center items-center min-h-screen py-16 px-4">
+    <div className="flex justify-center items-center min-h-screen py-20 md:py-24 px-4">
       <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Header */}
         <header className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
@@ -209,7 +209,7 @@ export default function ChatForm() {
         ) : (
           <div 
             ref={chatAreaRef}
-            className="flex-1 overflow-y-auto p-4 space-y-4"
+            className="flex-1 overflow-y-auto p-6 space-y-6 min-h-[400px] max-h-[60vh]"
           >
             {messages.map(message => (
               <ChatBubble key={message.id} message={message} />
