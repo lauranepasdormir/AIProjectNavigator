@@ -192,55 +192,57 @@ export default function ChatForm() {
   const htmlContent = formatMarkdownToHtml(markdownContent);
   
   return (
-    <div className="flex flex-col min-h-screen max-w-3xl mx-auto bg-white shadow-lg my-8 rounded-lg overflow-hidden">
-      {/* Header */}
-      <header className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
-        <ToyBrick className="mr-3 h-6 w-6" />
-        <h1 className="text-xl font-semibold">AI Project Showcase Form</h1>
-      </header>
-      
-      {/* Main Content */}
-      {isPreviewMode ? (
-        <MarkdownPreview 
-          htmlContent={htmlContent} 
-          title={answers.title || 'Untitled Project'} 
-        />
-      ) : (
-        <div 
-          ref={chatAreaRef}
-          className="flex-1 overflow-y-auto p-4 space-y-4"
-        >
-          {messages.map(message => (
-            <ChatBubble key={message.id} message={message} />
-          ))}
+    <div className="flex justify-center items-center min-h-screen py-16 px-4">
+      <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+        {/* Header */}
+        <header className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
+          <ToyBrick className="mr-3 h-6 w-6" />
+          <h1 className="text-xl font-semibold">AI Project Showcase Form</h1>
+        </header>
+        
+        {/* Main Content */}
+        {isPreviewMode ? (
+          <MarkdownPreview 
+            htmlContent={htmlContent} 
+            title={answers.title || 'Untitled Project'} 
+          />
+        ) : (
+          <div 
+            ref={chatAreaRef}
+            className="flex-1 overflow-y-auto p-4 space-y-4"
+          >
+            {messages.map(message => (
+              <ChatBubble key={message.id} message={message} />
+            ))}
+          </div>
+        )}
+        
+        {/* Navigation Area - Only show when not in preview mode */}
+        {!isPreviewMode && !isComplete && (
+          <ChatNavigation 
+            currentQuestion={currentQuestion}
+            totalQuestions={questions.length}
+            isCurrentQuestionRequired={currentQuestion < questions.length && questions[currentQuestion].required}
+            onPrevious={handlePrevious}
+            onSkip={handleSkip}
+          />
+        )}
+        
+        {/* Input Area */}
+        <div className="mt-auto">
+          <ChatInput 
+            placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
+            onSubmit={handleSubmit}
+            isComplete={isComplete}
+            onShowPreview={handleShowPreview}
+            onDownload={handleDownload}
+            onSave={handleSaveToDatabase}
+            onBackToChat={handleBackToChat}
+            isPreviewMode={isPreviewMode}
+            isSaved={isSaved}
+            isSaving={submitProjectMutation.isPending}
+          />
         </div>
-      )}
-      
-      {/* Navigation Area - Only show when not in preview mode */}
-      {!isPreviewMode && !isComplete && (
-        <ChatNavigation 
-          currentQuestion={currentQuestion}
-          totalQuestions={questions.length}
-          isCurrentQuestionRequired={currentQuestion < questions.length && questions[currentQuestion].required}
-          onPrevious={handlePrevious}
-          onSkip={handleSkip}
-        />
-      )}
-      
-      {/* Input Area */}
-      <div className="mt-auto">
-        <ChatInput 
-          placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
-          onSubmit={handleSubmit}
-          isComplete={isComplete}
-          onShowPreview={handleShowPreview}
-          onDownload={handleDownload}
-          onSave={handleSaveToDatabase}
-          onBackToChat={handleBackToChat}
-          isPreviewMode={isPreviewMode}
-          isSaved={isSaved}
-          isSaving={submitProjectMutation.isPending}
-        />
       </div>
     </div>
   );
