@@ -53,9 +53,6 @@ export function ChatInput({
     );
   }
   
-  // Debug logging
-  console.log("Chat input isComplete:", isComplete);
-  
   if (isComplete) {
     return (
       <div className="border-t p-4 bg-white shadow-inner">
