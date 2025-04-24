@@ -19,10 +19,10 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Calendar, User } from "lucide-react";
+import { Search, Eye, Calendar, User, Download } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from "date-fns";
-import { formatMarkdownToHtml } from "@/lib/markdown";
+import { generateMarkdown, downloadMarkdown, formatMarkdownToHtml } from "@/lib/markdown";
 
 export default function AdminPanel() {
   // State for search and dialog
@@ -67,6 +67,27 @@ export default function AdminPanel() {
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedSubmission(null);
+  };
+  
+  // Handle download markdown file
+  const handleDownload = (submission: ProjectSubmission) => {
+    // Prepare data in the expected format for generateMarkdown
+    const markdownData = {
+      username: submission.username,
+      title: submission.title,
+      description: submission.description,
+      problem: submission.problem,
+      technology: submission.technology,
+      impact: submission.impact,
+      team: submission.team,
+      status: submission.status,
+      contact: submission.contact
+    };
+    
+    // Generate markdown and download
+    const markdown = generateMarkdown(markdownData);
+    const filename = `${submission.title.replace(/\s+/g, '-').toLowerCase()}.md`;
+    downloadMarkdown(markdown, filename);
   };
 
   return (
@@ -146,14 +167,25 @@ export default function AdminPanel() {
                   </div>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleViewSubmission(submission)}
-                    className="gap-1"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View
-                  </Button>
+                  <div className="flex justify-end gap-2">
+                    <Button 
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleDownload(submission)}
+                      className="gap-1"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleViewSubmission(submission)}
+                      className="gap-1"
+                    >
+                      <Eye className="h-4 w-4" />
+                      View
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -213,7 +245,15 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              <div className="flex justify-end mt-4">
+              <div className="flex justify-end gap-2 mt-4">
+                <Button 
+                  variant="outline"
+                  onClick={() => handleDownload(selectedSubmission)}
+                  className="gap-1"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Markdown
+                </Button>
                 <Button onClick={handleCloseDialog}>
                   Close
                 </Button>
