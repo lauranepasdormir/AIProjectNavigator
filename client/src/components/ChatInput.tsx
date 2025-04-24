@@ -1,6 +1,6 @@
 import { useState, FormEvent } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Send, EyeIcon, Download, ArrowLeft, Database } from "lucide-react";
 
 interface ChatInputProps {
@@ -85,14 +85,21 @@ export function ChatInput({
   }
   
   return (
-    <form onSubmit={handleSubmit} className="border-t p-3 bg-white flex items-center gap-2">
-      <Input
+    <form onSubmit={handleSubmit} className="border-t p-3 bg-white flex items-start gap-2">
+      <Textarea
         value={inputValue}
-        onChange={(e) => setInputValue(e.target.value)}
+        onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 border border-gray-300 focus:ring-2 focus:ring-primary"
+        className="flex-1 border border-gray-300 focus:ring-2 focus:ring-primary min-h-[60px] resize-none"
+        rows={2}
+        onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+          if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit(e as unknown as FormEvent);
+          }
+        }}
       />
-      <Button type="submit" className="bg-primary hover:bg-primary/90 p-2 rounded-lg">
+      <Button type="submit" className="bg-primary hover:bg-primary/90 p-2 rounded-lg mt-1">
         <Send className="h-5 w-5" />
       </Button>
     </form>

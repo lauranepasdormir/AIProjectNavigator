@@ -72,6 +72,7 @@ export class MemStorage implements IStorage {
       id,
       createdAt: new Date(),
       // Ensure all required fields are present
+      username: submission.username ?? "Anonymous User",
       team: submission.team ?? "", // Use nullish coalescing to handle undefined
       userId: submission.userId ?? null
     };
@@ -111,9 +112,15 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission> {
+    // Ensure username is set with a default if not provided
+    const submissionWithDefaults = {
+      ...submission,
+      username: submission.username ?? "Anonymous User"
+    };
+    
     const [projectSubmission] = await db
       .insert(projectSubmissions)
-      .values(submission)
+      .values(submissionWithDefaults)
       .returning();
     return projectSubmission;
   }
