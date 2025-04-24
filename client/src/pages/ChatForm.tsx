@@ -8,7 +8,6 @@ import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatNavigation } from "@/components/ChatNavigation";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
-import { Footer } from "@/components/Footer";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -322,9 +321,6 @@ export default function ChatForm() {
           </div>
         </div>
       </div>
-      
-      {/* Footer */}
-      <Footer />
     </div>
   );
 }

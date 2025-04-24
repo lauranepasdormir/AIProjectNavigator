@@ -11,7 +11,7 @@ import { Footer } from "@/components/Footer";
 
 function Router() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
+    <div className="min-h-screen flex flex-col bg-gray-50 pb-24">
       <Header />
       <main className="flex-1">
         <Switch>
