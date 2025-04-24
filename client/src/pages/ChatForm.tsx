@@ -8,6 +8,7 @@ import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatNavigation } from "@/components/ChatNavigation";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { Footer } from "@/components/Footer";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -257,68 +258,73 @@ export default function ChatForm() {
   const htmlContent = formatMarkdownToHtml(markdownContent);
   
   return (
-    <div className="flex justify-center items-center py-12 md:py-16 px-4">
-      <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        {/* Form Header */}
-        <div className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
-          <ToyBrick className="mr-3 h-6 w-6" />
-          <h1 className="text-xl font-semibold">Submit Your AI Project</h1>
-        </div>
-        
-        {/* Main Content */}
-        {isPreviewMode ? (
-          <MarkdownPreview 
-            htmlContent={htmlContent} 
-            title={answers.title || 'Untitled Project'} 
-            answers={answers}
-            onUpdateAnswer={handleUpdateAnswer}
-            initialViewMode={previewViewMode}
-            onViewModeChange={handleViewModeChange}
-          />
-        ) : (
-          <div 
-            ref={chatAreaRef}
-            className="flex-1 overflow-y-auto p-6 space-y-6 min-h-[400px] max-h-[60vh]"
-          >
-            {messages.map(message => (
-              <ChatBubble 
-                key={message.id} 
-                message={message} 
-                onRequestDraft={!isComplete ? handleDraftRequest : undefined}
-                currentQuestion={currentQuestion}
-                isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}
-              />
-            ))}
+    <div className="flex flex-col min-h-screen">
+      <div className="flex justify-center items-center py-12 md:py-16 px-4 flex-grow">
+        <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
+          {/* Form Header */}
+          <div className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
+            <ToyBrick className="mr-3 h-6 w-6" />
+            <h1 className="text-xl font-semibold">Submit Your AI Project</h1>
           </div>
-        )}
-        
-        {/* Navigation Area - Only show when not in preview mode */}
-        {!isPreviewMode && !isComplete && (
-          <ChatNavigation 
-            currentQuestion={currentQuestion}
-            totalQuestions={questions.length}
-            isCurrentQuestionRequired={currentQuestion < questions.length && questions[currentQuestion].required}
-            onPrevious={handlePrevious}
-            onSkip={handleSkip}
-          />
-        )}
-        
-        {/* Input Area */}
-        <div className="mt-auto">
-          <ChatInput 
-            placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
-            onSubmit={handleSubmit}
-            isComplete={isComplete}
-            onShowPreview={handleShowPreview}
-            onDownload={handleDownload}
-            onSave={handleSaveToDatabase}
-            onBackToChat={handleBackToChat}
-            isPreviewMode={isPreviewMode}
-            isSaved={isSaved}
-            isSaving={submitProjectMutation.isPending}
-          />
+          
+          {/* Main Content */}
+          {isPreviewMode ? (
+            <MarkdownPreview 
+              htmlContent={htmlContent} 
+              title={answers.title || 'Untitled Project'} 
+              answers={answers}
+              onUpdateAnswer={handleUpdateAnswer}
+              initialViewMode={previewViewMode}
+              onViewModeChange={handleViewModeChange}
+            />
+          ) : (
+            <div 
+              ref={chatAreaRef}
+              className="flex-1 overflow-y-auto p-6 space-y-6 min-h-[400px] max-h-[60vh]"
+            >
+              {messages.map(message => (
+                <ChatBubble 
+                  key={message.id} 
+                  message={message} 
+                  onRequestDraft={!isComplete ? handleDraftRequest : undefined}
+                  currentQuestion={currentQuestion}
+                  isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}
+                />
+              ))}
+            </div>
+          )}
+          
+          {/* Navigation Area - Only show when not in preview mode */}
+          {!isPreviewMode && !isComplete && (
+            <ChatNavigation 
+              currentQuestion={currentQuestion}
+              totalQuestions={questions.length}
+              isCurrentQuestionRequired={currentQuestion < questions.length && questions[currentQuestion].required}
+              onPrevious={handlePrevious}
+              onSkip={handleSkip}
+            />
+          )}
+          
+          {/* Input Area */}
+          <div className="mt-auto">
+            <ChatInput 
+              placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
+              onSubmit={handleSubmit}
+              isComplete={isComplete}
+              onShowPreview={handleShowPreview}
+              onDownload={handleDownload}
+              onSave={handleSaveToDatabase}
+              onBackToChat={handleBackToChat}
+              isPreviewMode={isPreviewMode}
+              isSaved={isSaved}
+              isSaving={submitProjectMutation.isPending}
+            />
+          </div>
         </div>
       </div>
+      
+      {/* Footer */}
+      <Footer />
     </div>
   );
 }
