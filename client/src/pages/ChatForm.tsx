@@ -18,6 +18,7 @@ export default function ChatForm() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
+  const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
   const [isSaved, setIsSaved] = useState(false);
   const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
   
@@ -229,6 +230,11 @@ export default function ChatForm() {
     });
   };
   
+  // Handle view mode changes in preview
+  const handleViewModeChange = (mode: 'edit' | 'preview') => {
+    setPreviewViewMode(mode);
+  };
+  
   // Save project to database
   const handleSaveToDatabase = () => {
     submitProjectMutation.mutate(answers);
@@ -266,6 +272,8 @@ export default function ChatForm() {
             title={answers.title || 'Untitled Project'} 
             answers={answers}
             onUpdateAnswer={handleUpdateAnswer}
+            initialViewMode={previewViewMode}
+            onViewModeChange={handleViewModeChange}
           />
         ) : (
           <div 

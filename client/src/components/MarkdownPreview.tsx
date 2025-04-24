@@ -7,23 +7,39 @@ import { Input } from "@/components/ui/input";
 import { Question, questions } from "@/lib/questions";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
 
 interface MarkdownPreviewProps {
   htmlContent: string;
   title: string;
   answers?: Record<string, string>;
   onUpdateAnswer?: (id: string, value: string) => void;
+  initialViewMode?: 'edit' | 'preview';
+  onViewModeChange?: (mode: 'edit' | 'preview') => void;
 }
 
 export function MarkdownPreview({ 
   htmlContent, 
   title, 
   answers = {}, // Default to empty object to avoid undefined errors
-  onUpdateAnswer 
+  onUpdateAnswer,
+  initialViewMode = 'edit',
+  onViewModeChange
 }: MarkdownPreviewProps) {
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>("");
-  const [viewMode, setViewMode] = useState<'edit' | 'preview'>(onUpdateAnswer ? 'edit' : 'preview');
+  const [viewMode, setViewMode] = useState<'edit' | 'preview'>(
+    initialViewMode && onUpdateAnswer ? initialViewMode : (onUpdateAnswer ? 'edit' : 'preview')
+  );
+  const { toast } = useToast();
+  
+  // Notify parent component when view mode changes
+  const handleViewModeChange = (newMode: 'edit' | 'preview') => {
+    setViewMode(newMode);
+    if (onViewModeChange) {
+      onViewModeChange(newMode);
+    }
+  };
   
   const startEditing = (id: string, initialValue: string) => {
     setEditingField(id);
@@ -37,6 +53,13 @@ export function MarkdownPreview({
   const saveEdit = (id: string) => {
     if (onUpdateAnswer) {
       onUpdateAnswer(id, editValue);
+      
+      // Show a success toast notification
+      toast({
+        title: "Changes saved",
+        description: "Your answer has been updated successfully.",
+        variant: "default", // Using default instead of success as per LSP
+      });
     }
     setEditingField(null);
   };
@@ -133,7 +156,7 @@ export function MarkdownPreview({
                   <Switch
                     id="view-mode"
                     checked={viewMode === 'preview'}
-                    onCheckedChange={(checked) => setViewMode(checked ? 'preview' : 'edit')}
+                    onCheckedChange={(checked) => handleViewModeChange(checked ? 'preview' : 'edit')}
                   />
                 </div>
               </div>
