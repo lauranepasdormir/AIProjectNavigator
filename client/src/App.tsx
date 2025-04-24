@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 import ChatForm from "@/pages/ChatForm";
 import AdminPanel from "@/pages/AdminPanel";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 function Router() {
   return (
@@ -19,6 +20,7 @@ function Router() {
           <Route component={NotFound} />
         </Switch>
       </main>
+      <Footer />
     </div>
   );
 }
