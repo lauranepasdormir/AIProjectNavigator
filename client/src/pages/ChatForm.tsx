@@ -19,6 +19,7 @@ export default function ChatForm() {
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
   
   // Toast notifications
   const { toast } = useToast();
@@ -46,6 +47,38 @@ export default function ChatForm() {
       toast({
         title: "Error",
         description: "Failed to save your project. Please try again.",
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Mutation to generate draft responses
+  const generateDraftMutation = useMutation({
+    mutationFn: async ({ question, context }: { question: string; context: Record<string, string> }) => {
+      const response = await apiRequest(
+        'POST',
+        '/api/draft-suggestion',
+        { question, context }
+      );
+      return response.json();
+    },
+    onSuccess: (data) => {
+      addUserMessage(data.suggestion);
+      setGeneratingDraftForQuestion(null);
+      
+      toast({
+        title: "Draft Generated",
+        description: "AI-generated draft has been added to the chat.",
+        variant: "default",
+      });
+    },
+    onError: (error) => {
+      console.error('Error generating draft:', error);
+      setGeneratingDraftForQuestion(null);
+      
+      toast({
+        title: "Error",
+        description: "Failed to generate a draft suggestion. Please try again.",
         variant: "destructive",
       });
     }
@@ -187,6 +220,18 @@ export default function ChatForm() {
     submitProjectMutation.mutate(answers);
   };
   
+  // Handle draft generation request
+  const handleDraftRequest = (question: string) => {
+    // Save the question content to track which question is being processed
+    setGeneratingDraftForQuestion(question);
+    
+    // Generate the draft using the OpenAI API
+    generateDraftMutation.mutate({
+      question,
+      context: answers // Pass the current answers as context
+    });
+  };
+  
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);
   const htmlContent = formatMarkdownToHtml(markdownContent);
@@ -212,7 +257,13 @@ export default function ChatForm() {
             className="flex-1 overflow-y-auto p-6 space-y-6 min-h-[400px] max-h-[60vh]"
           >
             {messages.map(message => (
-              <ChatBubble key={message.id} message={message} />
+              <ChatBubble 
+                key={message.id} 
+                message={message} 
+                onRequestDraft={!isComplete ? handleDraftRequest : undefined}
+                currentQuestion={currentQuestion}
+                isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}
+              />
             ))}
           </div>
         )}
