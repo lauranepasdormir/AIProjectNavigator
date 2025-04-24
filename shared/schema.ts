@@ -16,7 +16,7 @@ export const projectSubmissions = pgTable("project_submissions", {
   problem: text("problem").notNull(),
   technology: text("technology").notNull(),
   impact: text("impact").notNull(),
-  team: text("team"),
+  team: text("team").notNull().default(""),
   status: text("status").notNull(),
   contact: text("contact").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
