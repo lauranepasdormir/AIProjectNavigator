@@ -215,6 +215,20 @@ export default function ChatForm() {
     downloadMarkdown(markdown, filename);
   };
   
+  // Handle updating an answer in the preview mode
+  const handleUpdateAnswer = (id: string, value: string) => {
+    const updatedAnswers = { ...answers };
+    updatedAnswers[id] = value;
+    setAnswers(updatedAnswers);
+    
+    // Update the markdown and HTML content to reflect the changes
+    toast({
+      title: "Answer Updated",
+      description: "Your answer has been updated successfully.",
+      variant: "default",
+    });
+  };
+  
   // Save project to database
   const handleSaveToDatabase = () => {
     submitProjectMutation.mutate(answers);
@@ -250,6 +264,8 @@ export default function ChatForm() {
           <MarkdownPreview 
             htmlContent={htmlContent} 
             title={answers.title || 'Untitled Project'} 
+            answers={answers}
+            onUpdateAnswer={handleUpdateAnswer}
           />
         ) : (
           <div 
