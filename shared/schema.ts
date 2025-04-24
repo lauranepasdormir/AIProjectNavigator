@@ -11,6 +11,7 @@ export const users = pgTable("users", {
 
 export const projectSubmissions = pgTable("project_submissions", {
   id: serial("id").primaryKey(),
+  username: text("username").notNull().default("Anonymous User"),
   title: text("title").notNull(),
   description: text("description").notNull(),
   problem: text("problem").notNull(),
