@@ -192,13 +192,13 @@ export default function ChatForm() {
   const htmlContent = formatMarkdownToHtml(markdownContent);
   
   return (
-    <div className="flex justify-center items-center min-h-screen py-20 md:py-24 px-4">
+    <div className="flex justify-center items-center py-12 md:py-16 px-4">
       <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-        {/* Header */}
-        <header className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
+        {/* Form Header */}
+        <div className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
           <ToyBrick className="mr-3 h-6 w-6" />
-          <h1 className="text-xl font-semibold">AI Project Showcase Form</h1>
-        </header>
+          <h1 className="text-xl font-semibold">Submit Your AI Project</h1>
+        </div>
         
         {/* Main Content */}
         {isPreviewMode ? (

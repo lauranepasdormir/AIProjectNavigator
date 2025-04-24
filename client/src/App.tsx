@@ -5,13 +5,21 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ChatForm from "@/pages/ChatForm";
+import AdminPanel from "@/pages/AdminPanel";
+import { Header } from "@/components/Header";
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={ChatForm} />
-      <Route component={NotFound} />
-    </Switch>
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      <main className="flex-1">
+        <Switch>
+          <Route path="/" component={ChatForm} />
+          <Route path="/admin" component={AdminPanel} />
+          <Route component={NotFound} />
+        </Switch>
+      </main>
+    </div>
   );
 }
 
