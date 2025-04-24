@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
+import { generateDraftResponse } from "./openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Project Submission Routes
@@ -54,6 +55,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error('Error creating project submission:', error);
       res.status(500).json({ error: 'Failed to create project submission' });
+    }
+  });
+
+  // Draft suggestion API endpoint
+  app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
+    try {
+      const { question, context } = req.body;
+      
+      if (!question || typeof question !== 'string') {
+        return res.status(400).json({ error: 'Question is required' });
+      }
+      
+      const suggestion = await generateDraftResponse(question, context);
+      res.json({ suggestion });
+    } catch (error) {
+      console.error('Error generating draft suggestion:', error);
+      res.status(500).json({ 
+        error: 'Failed to generate draft suggestion',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
