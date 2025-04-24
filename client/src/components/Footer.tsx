@@ -8,7 +8,7 @@ export function Footer() {
       <div className="container mx-auto flex flex-col md:flex-row justify-between items-center">
         <div className="flex items-center mb-4 md:mb-0">
           <img 
-            src="/dv-logo.jpg" 
+            src="/dv-logo.png" 
             alt="Digital Village Logo" 
             className="h-8 mr-3"
             onError={(e) => { console.error("Image failed to load:", e); }}
