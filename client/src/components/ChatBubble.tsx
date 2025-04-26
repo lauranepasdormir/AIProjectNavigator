@@ -46,18 +46,18 @@ export function ChatBubble({
                 <Button 
                   variant="outline" 
                   size="sm" 
-                  className="text-xs"
+                  className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
                   onClick={() => onRequestDraft(message.content)}
                   disabled={isGeneratingDraft}
                 >
                   {isGeneratingDraft ? (
                     <>
-                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                      <Loader2 className="mr-1 h-3 w-3 animate-spin text-blue-600" />
                       Generating suggestion...
                     </>
                   ) : (
                     <>
-                      <LightbulbIcon className="mr-1 h-3 w-3" />
+                      <LightbulbIcon className="mr-1 h-3 w-3 text-blue-600" />
                       Help me draft this
                     </>
                   )}
