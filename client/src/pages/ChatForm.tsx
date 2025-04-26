@@ -11,16 +11,18 @@ import { MarkdownPreview } from "@/components/MarkdownPreview";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 
 export default function ChatForm() {
   // State management
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
+  const [currentQuestion, setCurrentQuestion] = useState(-1); // Start with -1 to show intro first
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
   const [isSaved, setIsSaved] = useState(false);
   const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
+  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions'>('welcome');
   
   // Toast notifications
   const { toast } = useToast();
@@ -94,13 +96,29 @@ export default function ChatForm() {
       const welcomeMessage: ChatMessage = {
         id: uuidv4(),
         type: 'bot',
-        content: "Hi there! I'll help you submit information about your AI project for the showcase. Let's get started! " + questions[0].text,
+        content: "Hi! Glad you made it here. Thanks for taking the time to share some info about a project you worked on.",
         timestamp: new Date()
       };
       
       setMessages([welcomeMessage]);
     }
   }, [messages.length]);
+  
+  // Handle onboarding stages
+  const proceedToNextOnboardingStage = () => {
+    if (onboardingStage === 'welcome') {
+      setOnboardingStage('purpose');
+      setTimeout(() => {
+        addBotMessage("The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities.");
+      }, 500);
+    } else if (onboardingStage === 'purpose') {
+      setOnboardingStage('questions');
+      setCurrentQuestion(0);
+      setTimeout(() => {
+        addBotMessage(questions[0].text);
+      }, 500);
+    }
+  };
   
   // Scroll to bottom of chat area when messages change
   useEffect(() => {
@@ -110,7 +128,7 @@ export default function ChatForm() {
   }, [messages]);
   
   // Check if all questions have been answered
-  const isComplete = currentQuestion >= questions.length;
+  const isComplete = onboardingStage === 'questions' && currentQuestion >= questions.length;
   
   // Add a bot message to the chat
   const addBotMessage = (content: string) => {
@@ -138,33 +156,41 @@ export default function ChatForm() {
   
   // Handle user input submission
   const handleSubmit = (value: string) => {
-    // Skip empty required answers
-    if (!value && questions[currentQuestion]?.required) {
+    // Add user message
+    addUserMessage(value);
+    
+    // If we're in the onboarding stages, proceed to the next stage
+    if (onboardingStage !== 'questions') {
+      proceedToNextOnboardingStage();
+      return;
+    }
+    
+    // Skip empty required answers for questions
+    if (!value && currentQuestion >= 0 && questions[currentQuestion]?.required) {
       addBotMessage("This field is required. Please provide an answer.");
       return;
     }
     
-    // Add user message
-    addUserMessage(value);
-    
     // Save answer
-    const updatedAnswers = { ...answers };
-    updatedAnswers[questions[currentQuestion].id] = value;
-    setAnswers(updatedAnswers);
-    
-    // Move to next question
-    setCurrentQuestion(prev => prev + 1);
-    
-    // If there are more questions, show the next one
-    if (currentQuestion + 1 < questions.length) {
-      setTimeout(() => {
-        addBotMessage(questions[currentQuestion + 1].text);
-      }, 500);
-    } else {
-      // Show completion message
-      setTimeout(() => {
-        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
-      }, 500);
+    if (currentQuestion >= 0) {
+      const updatedAnswers = { ...answers };
+      updatedAnswers[questions[currentQuestion].id] = value;
+      setAnswers(updatedAnswers);
+      
+      // Move to next question
+      setCurrentQuestion(prev => prev + 1);
+      
+      // If there are more questions, show the next one
+      if (currentQuestion + 1 < questions.length) {
+        setTimeout(() => {
+          addBotMessage(questions[currentQuestion + 1].text);
+        }, 500);
+      } else {
+        // Show completion message
+        setTimeout(() => {
+          addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+        }, 500);
+      }
     }
   };
   
@@ -178,7 +204,7 @@ export default function ChatForm() {
   
   // Handle skip button click
   const handleSkip = () => {
-    if (!questions[currentQuestion].required) {
+    if (currentQuestion >= 0 && currentQuestion < questions.length && !questions[currentQuestion].required) {
       addUserMessage("Skip");
       
       const updatedAnswers = { ...answers };
@@ -293,8 +319,8 @@ export default function ChatForm() {
             </div>
           )}
           
-          {/* Navigation Area - Only show when not in preview mode */}
-          {!isPreviewMode && !isComplete && (
+          {/* Navigation Area - Only show when not in preview mode and in questions stage */}
+          {!isPreviewMode && !isComplete && onboardingStage === 'questions' && currentQuestion >= 0 && (
             <ChatNavigation 
               currentQuestion={currentQuestion}
               totalQuestions={questions.length}
@@ -306,18 +332,46 @@ export default function ChatForm() {
           
           {/* Input Area */}
           <div className="mt-auto">
-            <ChatInput 
-              placeholder={currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
-              onSubmit={handleSubmit}
-              isComplete={isComplete}
-              onShowPreview={handleShowPreview}
-              onDownload={handleDownload}
-              onSave={handleSaveToDatabase}
-              onBackToChat={handleBackToChat}
-              isPreviewMode={isPreviewMode}
-              isSaved={isSaved}
-              isSaving={submitProjectMutation.isPending}
-            />
+            {onboardingStage === 'welcome' && (
+              <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => handleSubmit("I'm ready to proceed")}
+                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-base sm:text-lg font-medium rounded-lg"
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {onboardingStage === 'purpose' && (
+              <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
+                <div className="flex justify-center">
+                  <Button
+                    onClick={() => handleSubmit("Let's get started")}
+                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-base sm:text-lg font-medium rounded-lg"
+                  >
+                    Let's Get Started
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {onboardingStage === 'questions' && (
+              <ChatInput 
+                placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
+                onSubmit={handleSubmit}
+                isComplete={isComplete}
+                onShowPreview={handleShowPreview}
+                onDownload={handleDownload}
+                onSave={handleSaveToDatabase}
+                onBackToChat={handleBackToChat}
+                isPreviewMode={isPreviewMode}
+                isSaved={isSaved}
+                isSaving={submitProjectMutation.isPending}
+              />
+            )}
           </div>
         </div>
       </div>
