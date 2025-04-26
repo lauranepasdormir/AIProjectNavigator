@@ -258,12 +258,12 @@ export default function ChatForm() {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex justify-center items-center py-12 md:py-16 px-4 flex-grow">
+      <div className="flex justify-center items-center py-4 sm:py-6 md:py-8 px-2 sm:px-4 flex-grow">
         <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Form Header */}
-          <div className="px-4 py-4 bg-primary text-white flex items-center shadow-md">
-            <ToyBrick className="mr-3 h-6 w-6" />
-            <h1 className="text-xl font-semibold">Submit Your AI Project</h1>
+          <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center shadow-md">
+            <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
+            <h1 className="text-lg sm:text-xl font-semibold">Submit Your AI Project</h1>
           </div>
           
           {/* Main Content */}

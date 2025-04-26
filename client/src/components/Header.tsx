@@ -1,19 +1,22 @@
 import { useLocation, Link } from "wouter";
-import { ToyBrick, User, Database } from "lucide-react";
+import { ToyBrick, User, Database, Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
 export function Header() {
   const [location] = useLocation();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="border-b bg-white p-4 sticky top-0 z-10 shadow-sm">
+    <header className="border-b bg-white p-3 sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-2">
-          <ToyBrick className="h-6 w-6 text-primary" />
-          <span className="text-xl font-bold">AI Project Showcase</span>
+          <ToyBrick className="h-5 w-5 text-primary" />
+          <span className="text-lg font-bold sm:text-xl">AI Project Showcase</span>
         </div>
 
-        <nav className="flex space-x-2">
+        {/* Desktop Navigation */}
+        <nav className="hidden sm:flex space-x-2">
           <Button
             variant={location === "/" ? "default" : "ghost"}
             size="sm"
@@ -36,7 +39,52 @@ export function Header() {
             </Link>
           </Button>
         </nav>
+        
+        {/* Mobile Navigation Button */}
+        <div className="sm:hidden">
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-1"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </div>
+      
+      {/* Mobile Navigation Menu */}
+      {menuOpen && (
+        <div className="container mx-auto mt-2 sm:hidden">
+          <div className="flex flex-col space-y-2 bg-white rounded-md shadow-md p-2">
+            <Button
+              variant={location === "/" ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="justify-start"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Link href="/">
+                <User className="h-4 w-4 mr-2" />
+                Submit Project
+              </Link>
+            </Button>
+
+            <Button
+              variant={location === "/admin" ? "default" : "ghost"}
+              size="sm"
+              asChild
+              className="justify-start"
+              onClick={() => setMenuOpen(false)}
+            >
+              <Link href="/admin">
+                <Database className="h-4 w-4 mr-2" />
+                View Submissions
+              </Link>
+            </Button>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
