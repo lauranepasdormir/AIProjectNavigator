@@ -28,18 +28,18 @@ export function ChatBubble({
       !isBot && "justify-end"
     )}>
       {isBot && (
-        <div className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center mr-3 flex-shrink-0">
-          <ToyBrick className="h-5 w-5" />
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-white flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+          <ToyBrick className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       )}
       
-      <div className={cn("flex-1", !isBot && "flex justify-end")}>
-        <div>
+      <div className={cn("flex-1 max-w-[90%] sm:max-w-[80%]", !isBot && "flex justify-end")}>
+        <div className="w-full">
           <div className={cn(
-            "rounded-lg p-3 inline-block max-w-[85%]",
+            "rounded-lg p-2 sm:p-3 inline-block w-full",
             isBot ? "bg-gray-100" : "bg-primary text-white"
           )}>
-            <p>{message.content}</p>
+            <p className="text-sm sm:text-base break-words">{message.content}</p>
             
             {showDraftButton && (
               <div className="mt-2 pt-2 border-t border-gray-200">
@@ -53,7 +53,7 @@ export function ChatBubble({
                   {isGeneratingDraft ? (
                     <>
                       <Loader2 className="mr-1 h-3 w-3 animate-spin text-blue-600" />
-                      Generating suggestion...
+                      <span className="truncate">Generating...</span>
                     </>
                   ) : (
                     <>
@@ -75,8 +75,8 @@ export function ChatBubble({
       </div>
       
       {!isBot && (
-        <div className="w-10 h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center ml-3 flex-shrink-0">
-          <PersonStanding className="h-5 w-5" />
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center ml-2 sm:ml-3 flex-shrink-0">
+          <PersonStanding className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       )}
     </div>

@@ -139,30 +139,30 @@ export function ChatInput({
   
   if (isPreviewMode) {
     return (
-      <div className="border-t p-4 bg-white flex flex-wrap justify-between shadow-inner gap-2">
+      <div className="border-t p-3 sm:p-4 bg-white flex flex-col sm:flex-row justify-between shadow-inner gap-2">
         <Button
           variant="outline"
           onClick={onBackToChat}
-          className="gap-2 px-4"
+          className="gap-2 px-3 sm:px-4 text-sm sm:text-base"
         >
-          <ArrowLeft className="h-4 w-4" /> Return to Chat
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" /> Return to Chat
         </Button>
         
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <Button
             onClick={onSave}
             disabled={isSaved || isSaving}
-            className="bg-primary hover:bg-primary/90 gap-2 px-5 py-6 text-lg font-medium"
+            className="bg-primary hover:bg-primary/90 gap-2 px-3 py-2 sm:px-5 sm:py-6 text-sm sm:text-lg font-medium"
           >
-            <Database className="h-5 w-5" /> 
-            {isSaving ? 'Saving...' : isSaved ? 'Project Saved' : 'Save My Project'}
+            <Database className="h-4 w-4 sm:h-5 sm:w-5" /> 
+            {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save Project'}
           </Button>
           
           <Button
             onClick={onDownload}
-            className="bg-secondary hover:bg-secondary/90 gap-2 px-5 py-6 text-lg font-medium"
+            className="bg-secondary hover:bg-secondary/90 gap-2 px-3 py-2 sm:px-5 sm:py-6 text-sm sm:text-lg font-medium"
           >
-            <Download className="h-5 w-5" /> Download Markdown
+            <Download className="h-4 w-4 sm:h-5 sm:w-5" /> Download
           </Button>
         </div>
       </div>
@@ -171,13 +171,13 @@ export function ChatInput({
   
   if (isComplete) {
     return (
-      <div className="border-t p-4 bg-white shadow-inner">
-        <p className="text-center text-gray-700 mb-3">You've completed all questions!</p>
+      <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
+        <p className="text-center text-gray-700 mb-2 sm:mb-3 text-sm sm:text-base">You've completed all questions!</p>
         <Button
           onClick={onShowPreview}
-          className="w-full bg-primary hover:bg-primary/90 gap-2 py-6 text-lg font-medium"
+          className="w-full bg-primary hover:bg-primary/90 gap-2 py-3 sm:py-6 text-base sm:text-lg font-medium"
         >
-          <EyeIcon className="h-5 w-5" /> Show Preview
+          <EyeIcon className="h-4 w-4 sm:h-5 sm:w-5" /> Show Preview
         </Button>
       </div>
     );
@@ -193,14 +193,14 @@ export function ChatInput({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="border-t p-3 bg-white flex flex-col gap-2">
-      <div className="flex items-start gap-2">
+    <form onSubmit={handleSubmit} className="border-t p-2 sm:p-3 bg-white flex flex-col gap-2">
+      <div className="flex items-start gap-1 sm:gap-2">
         <div className="flex-1 relative">
           <Textarea
             value={inputValue}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setInputValue(e.target.value)}
             placeholder={isListening ? "Listening..." : placeholder}
-            className={`w-full border ${isListening ? 'border-red-400' : 'border-gray-300'} focus:ring-2 focus:ring-primary min-h-[60px] resize-none ${isListening ? 'pr-8' : ''}`}
+            className={`w-full border ${isListening ? 'border-red-400' : 'border-gray-300'} focus:ring-2 focus:ring-primary min-h-[50px] sm:min-h-[60px] text-sm sm:text-base resize-none ${isListening ? 'pr-8' : ''}`}
             rows={2}
             onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
               if (e.key === 'Enter' && !e.shiftKey) {
@@ -218,24 +218,24 @@ export function ChatInput({
             </div>
           )}
         </div>
-        <div className="flex flex-col gap-2 mt-1">
+        <div className="flex flex-col gap-1 sm:gap-2 mt-0 sm:mt-1">
           {isVoiceSupported && (
             <Button
               type="button"
               onClick={toggleListening}
-              className={`${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} p-2 rounded-lg`}
+              className={`${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'} p-1 sm:p-2 rounded-lg`}
               title={isListening ? "Stop recording" : "Start voice input"}
             >
-              {isListening ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+              {isListening ? <MicOff className="h-4 w-4 sm:h-5 sm:w-5" /> : <Mic className="h-4 w-4 sm:h-5 sm:w-5" />}
             </Button>
           )}
-          <Button type="submit" className="bg-primary hover:bg-primary/90 p-2 rounded-lg">
-            <Send className="h-5 w-5" />
+          <Button type="submit" className="bg-primary hover:bg-primary/90 p-1 sm:p-2 rounded-lg">
+            <Send className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
       </div>
       {isVoiceSupported && isListening && (
-        <div className="text-center text-sm text-gray-500">
+        <div className="text-center text-xs sm:text-sm text-gray-500">
           Voice input active. Speak now...
         </div>
       )}

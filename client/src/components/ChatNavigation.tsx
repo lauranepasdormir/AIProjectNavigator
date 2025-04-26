@@ -18,15 +18,15 @@ export function ChatNavigation({
 }: ChatNavigationProps) {
   return (
     <div className="border-t border-gray-200 p-2 bg-gray-50 flex items-center justify-between">
-      <div className="flex space-x-2">
+      <div className="flex space-x-1 sm:space-x-2">
         <Button
           variant="outline"
           size="sm"
           onClick={onPrevious}
           disabled={currentQuestion === 0}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 text-xs sm:text-sm py-1 h-8 px-2 sm:px-3"
         >
-          <ArrowLeft className="h-4 w-4" /> Back
+          <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" /> Back
         </Button>
         
         <Button
@@ -34,14 +34,14 @@ export function ChatNavigation({
           size="sm"
           onClick={onSkip}
           disabled={isCurrentQuestionRequired}
-          className="flex items-center gap-1"
+          className="flex items-center gap-1 text-xs sm:text-sm py-1 h-8 px-2 sm:px-3"
         >
-          Skip <ChevronsRight className="h-4 w-4" />
+          Skip <ChevronsRight className="h-3 w-3 sm:h-4 sm:w-4" />
         </Button>
       </div>
       
       <div>
-        <span className="text-sm text-gray-500">
+        <span className="text-xs sm:text-sm text-gray-500 font-medium">
           {currentQuestion + 1}/{totalQuestions}
         </span>
       </div>
