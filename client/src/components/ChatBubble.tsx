@@ -20,7 +20,8 @@ export function ChatBubble({
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
   // Only show the draft button for bot messages (questions) that have the draft handler
-  const showDraftButton = isBot && onRequestDraft && typeof currentQuestion === 'number';
+  // And only starting from the description question (index 2) onwards
+  const showDraftButton = isBot && onRequestDraft && typeof currentQuestion === 'number' && currentQuestion >= 2;
   
   return (
     <div className={cn(
