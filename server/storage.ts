@@ -8,6 +8,9 @@ import {
 } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import session from "express-session";
+import connectPg from "connect-pg-simple";
+import { pool } from "./db";
 
 export interface IStorage {
   // User methods
@@ -19,6 +22,9 @@ export interface IStorage {
   getProjectSubmission(id: number): Promise<ProjectSubmission | undefined>;
   getAllProjectSubmissions(): Promise<ProjectSubmission[]>;
   createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission>;
+  
+  // Session store
+  sessionStore: session.Store;
 }
 
 export class MemStorage implements IStorage {
@@ -26,12 +32,19 @@ export class MemStorage implements IStorage {
   private projectSubmissions: Map<number, ProjectSubmission>;
   private userCurrentId: number;
   private submissionCurrentId: number;
+  sessionStore: session.Store;
 
   constructor() {
     this.users = new Map();
     this.projectSubmissions = new Map();
     this.userCurrentId = 1;
     this.submissionCurrentId = 1;
+    
+    // Create a memory store for sessions (not persistent)
+    const MemoryStore = require('memorystore')(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    });
   }
 
   // User methods

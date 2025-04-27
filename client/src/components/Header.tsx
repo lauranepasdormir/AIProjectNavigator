@@ -1,11 +1,18 @@
 import { useLocation, Link } from "wouter";
-import { ToyBrick, User, Database, Menu } from "lucide-react";
+import { ToyBrick, User, Database, Menu, LogIn, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Header() {
   const [location] = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const { isAuthenticated, logout, user } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    setMenuOpen(false);
+  };
 
   return (
     <header className="border-b bg-white p-3 sticky top-0 z-10 shadow-sm">
@@ -28,16 +35,40 @@ export function Header() {
             </Link>
           </Button>
 
-          <Button
-            variant={location === "/admin" ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href="/admin">
-              <Database className="h-4 w-4 mr-2" />
-              View Submissions
-            </Link>
-          </Button>
+          {isAuthenticated ? (
+            <>
+              <Button
+                variant={location === "/admin" ? "default" : "ghost"}
+                size="sm"
+                asChild
+              >
+                <Link href="/admin">
+                  <Database className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </Link>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
+            </>
+          ) : (
+            <Button
+              variant={location === "/login" ? "default" : "ghost"}
+              size="sm"
+              asChild
+            >
+              <Link href="/login">
+                <LogIn className="h-4 w-4 mr-2" />
+                Admin Login
+              </Link>
+            </Button>
+          )}
         </nav>
         
         {/* Mobile Navigation Button */}
@@ -70,18 +101,45 @@ export function Header() {
               </Link>
             </Button>
 
-            <Button
-              variant={location === "/admin" ? "default" : "ghost"}
-              size="sm"
-              asChild
-              className="justify-start"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Link href="/admin">
-                <Database className="h-4 w-4 mr-2" />
-                View Submissions
-              </Link>
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Button
+                  variant={location === "/admin" ? "default" : "ghost"}
+                  size="sm"
+                  asChild
+                  className="justify-start"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  <Link href="/admin">
+                    <Database className="h-4 w-4 mr-2" />
+                    Admin Panel
+                  </Link>
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="justify-start"
+                >
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <Button
+                variant={location === "/login" ? "default" : "ghost"}
+                size="sm"
+                asChild
+                className="justify-start"
+                onClick={() => setMenuOpen(false)}
+              >
+                <Link href="/login">
+                  <LogIn className="h-4 w-4 mr-2" />
+                  Admin Login
+                </Link>
+              </Button>
+            )}
           </div>
         </div>
       )}

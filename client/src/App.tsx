@@ -6,8 +6,11 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/not-found";
 import ChatForm from "@/pages/ChatForm";
 import AdminPanel from "@/pages/AdminPanel";
+import LoginPage from "@/pages/LoginPage";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { AuthProvider } from "@/hooks/use-auth";
 
 function Router() {
   return (
@@ -16,7 +19,8 @@ function Router() {
       <main className="flex-1">
         <Switch>
           <Route path="/" component={ChatForm} />
-          <Route path="/admin" component={AdminPanel} />
+          <Route path="/login" component={LoginPage} />
+          <ProtectedRoute path="/admin" component={AdminPanel} />
           <Route component={NotFound} />
         </Switch>
       </main>
@@ -28,10 +32,12 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
