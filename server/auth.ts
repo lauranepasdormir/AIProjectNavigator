@@ -171,9 +171,18 @@ export function setupAuth(app: Express) {
 
   // Authentication middleware
   function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+    // Add debugging info
+    console.log('Authentication check:');
+    console.log(`- isAuthenticated: ${req.isAuthenticated()}`);
+    console.log(`- Session ID: ${req.sessionID}`);
+    console.log(`- Session data:`, req.session);
+    console.log(`- User data:`, req.user || 'No user');
+    
     if (req.isAuthenticated()) {
+      console.log('User is authenticated, proceeding...');
       return next();
     }
+    console.log('User is NOT authenticated, returning 401');
     res.status(401).json({ error: 'Unauthorized' });
   }
 
