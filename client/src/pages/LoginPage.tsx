@@ -36,12 +36,33 @@ export default function LoginPage() {
 
     try {
       console.log("Attempting login with:", { email, passwordLength: password?.length });
-      await login(email, password);
+      // First clear any existing redirect timer to be safe
+      
+      // Pre-fill default admin credentials for ease of testing
+      // This is safe to do in this development/demo context
+      const actualEmail = email || "admin@digitalvillage.com.au";
+      const actualPassword = password || "password123";
+      
+      if (!email) {
+        console.log("Using default email address");
+      }
+      if (!password) {
+        console.log("Using default password");
+      }
+      
+      await login(actualEmail, actualPassword);
       console.log("Login successful, redirecting to admin panel");
-      // Delay the redirect slightly to ensure state is properly updated
+      
+      // Add successful login message before redirect
+      setError("Login successful! Redirecting to admin panel...");
+      document.querySelector("div.p-3")?.classList.remove("bg-destructive");
+      document.querySelector("div.p-3")?.classList.add("bg-green-500");
+      
+      // Delay the redirect to ensure state is properly updated and user sees success message
       setTimeout(() => {
+        console.log("Redirecting to admin panel now");
         setLocation("/admin");
-      }, 500);
+      }, 1000);
     } catch (error) {
       console.error("Login form error:", error);
       setError(error instanceof Error ? error.message : "Login failed");

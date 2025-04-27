@@ -68,10 +68,14 @@ export default function AdminPanel() {
     retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
     enabled: true, // Always fetch regardless of authentication status
     queryFn: async () => {
-      console.log("Directly fetching project submissions from bypass endpoint");
+      console.log("Directly fetching project submissions from bypass endpoint - " + new Date().toISOString());
       
       try {
-        const res = await fetch('/api/project-submissions-direct', {
+        // First try the direct endpoint that always works
+        const directApiUrl = '/api/project-submissions-direct';
+        console.log(`Fetching from ${directApiUrl}`);
+        
+        const directRes = await fetch(directApiUrl, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -82,17 +86,42 @@ export default function AdminPanel() {
           credentials: 'include'
         });
         
-        console.log(`Direct API response status: ${res.status} ${res.statusText}`);
+        console.log(`Direct API response status: ${directRes.status} ${directRes.statusText}`);
         
-        if (!res.ok) {
-          throw new Error(`API Error: ${res.status} ${res.statusText}`);
+        if (directRes.ok) {
+          const data = await directRes.json();
+          if (Array.isArray(data) && data.length > 0) {
+            console.log(`SUCCESS: Retrieved ${data.length} submissions directly`);
+            return data;
+          } else {
+            console.log(`Warning: Retrieved empty data array from direct endpoint`);
+          }
+        } else {
+          console.warn(`Warning: Direct endpoint returned non-OK status: ${directRes.status}`);
         }
         
-        const data = await res.json();
-        console.log(`Retrieved ${data.length} submissions directly`);
-        return data;
+        // Fall back to the regular endpoint if direct fails
+        console.log("Falling back to regular endpoint");
+        const regularRes = await fetch('/api/project-submissions', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          },
+          credentials: 'include'
+        });
+        
+        if (!regularRes.ok) {
+          console.error(`Regular API error: ${regularRes.status} ${regularRes.statusText}`);
+          throw new Error(`API Error: ${regularRes.status} ${regularRes.statusText}`);
+        }
+        
+        const regularData = await regularRes.json();
+        console.log(`Retrieved ${regularData.length} submissions from regular endpoint`);
+        return regularData;
       } catch (error) {
-        console.error("Error fetching submissions directly:", error);
+        console.error("Error fetching submissions:", error);
         throw error;
       }
     }
