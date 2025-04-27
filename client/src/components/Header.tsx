@@ -36,27 +36,14 @@ export function Header() {
           </Button>
 
           {isAuthenticated ? (
-            <>
-              <Button
-                variant={location === "/admin" ? "default" : "ghost"}
-                size="sm"
-                asChild
-              >
-                <Link href="/admin">
-                  <Database className="h-4 w-4 mr-2" />
-                  Admin Panel
-                </Link>
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleLogout}
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           ) : (
             <Button
               variant={location === "/login" ? "default" : "ghost"}
@@ -102,30 +89,15 @@ export function Header() {
             </Button>
 
             {isAuthenticated ? (
-              <>
-                <Button
-                  variant={location === "/admin" ? "default" : "ghost"}
-                  size="sm"
-                  asChild
-                  className="justify-start"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  <Link href="/admin">
-                    <Database className="h-4 w-4 mr-2" />
-                    Admin Panel
-                  </Link>
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="justify-start"
-                >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
-              </>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLogout}
+                className="justify-start"
+              >
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             ) : (
               <Button
                 variant={location === "/login" ? "default" : "ghost"}
