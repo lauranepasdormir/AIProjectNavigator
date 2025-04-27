@@ -19,16 +19,18 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Calendar, User, Download } from "lucide-react";
+import { Search, Eye, Calendar, User, Download, Lock, Users, Globe, Edit } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { generateMarkdown, downloadMarkdown, formatMarkdownToHtml } from "@/lib/markdown";
 
 export default function AdminPanel() {
-  // State for search and dialog
+  // State for search, dialog, and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<ProjectSubmission | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
 
   // Fetch project submissions
   const { data: projectSubmissions, isLoading, error } = useQuery({
@@ -42,9 +44,29 @@ export default function AdminPanel() {
     return formatDistanceToNow(date, { addSuffix: true });
   };
 
-  // Filter submissions based on search query
+  // Get visibility badge color
+  const getVisibilityColor = (visibility: string): "default" | "secondary" | "outline" | "destructive" => {
+    switch(visibility.toLowerCase()) {
+      case 'private':
+        return 'secondary';
+      case 'internal':
+        return 'default';  
+      case 'public':
+        return 'destructive'; // Using destructive to represent 'public' - typically red/orange color
+      default:
+        return 'outline';
+    }
+  };
+
+  // Filter submissions based on search query and visibility filter
   const filteredSubmissions = projectSubmissions && Array.isArray(projectSubmissions) 
     ? projectSubmissions.filter((submission: ProjectSubmission) => {
+        // First filter by visibility if needed
+        if (visibilityFilter !== 'all' && submission.visibility.toLowerCase() !== visibilityFilter.toLowerCase()) {
+          return false;
+        }
+        
+        // Then filter by search query
         if (!searchQuery) return true;
         
         const searchLower = searchQuery.toLowerCase();
@@ -92,7 +114,7 @@ export default function AdminPanel() {
 
   return (
     <div className="container mx-auto py-10 px-4">
-      <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-4">
+      <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
         <h1 className="text-3xl font-bold text-primary">Project Submissions</h1>
         
         {/* Search input */}
@@ -105,6 +127,34 @@ export default function AdminPanel() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+      </div>
+      
+      {/* Visibility filter tabs */}
+      <div className="mb-6">
+        <Tabs 
+          defaultValue="all" 
+          value={visibilityFilter}
+          onValueChange={setVisibilityFilter}
+          className="w-full"
+        >
+          <TabsList className="grid grid-cols-4 w-full max-w-md">
+            <TabsTrigger value="all" className="flex items-center gap-1">
+              All
+            </TabsTrigger>
+            <TabsTrigger value="private" className="flex items-center gap-1">
+              <Lock className="h-4 w-4" />
+              Private
+            </TabsTrigger>
+            <TabsTrigger value="internal" className="flex items-center gap-1">
+              <Users className="h-4 w-4" />
+              Internal
+            </TabsTrigger>
+            <TabsTrigger value="public" className="flex items-center gap-1">
+              <Globe className="h-4 w-4" />
+              Public
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
 
       {isLoading ? (
@@ -126,6 +176,7 @@ export default function AdminPanel() {
           <TableHeader>
             <TableRow>
               <TableHead>Project</TableHead>
+              <TableHead>Visibility</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Submitted by</TableHead>
               <TableHead>Date</TableHead>
@@ -142,6 +193,17 @@ export default function AdminPanel() {
                       ? `${submission.description.substring(0, 100)}...`
                       : submission.description}
                   </div>
+                </TableCell>
+                <TableCell>
+                  <Badge 
+                    variant={getVisibilityColor(submission.visibility)}
+                    className="flex items-center gap-1 whitespace-nowrap"
+                  >
+                    {submission.visibility === 'private' && <Lock className="h-3.5 w-3.5" />}
+                    {submission.visibility === 'internal' && <Users className="h-3.5 w-3.5" />}
+                    {submission.visibility === 'public' && <Globe className="h-3.5 w-3.5" />}
+                    {submission.visibility.charAt(0).toUpperCase() + submission.visibility.slice(1)}
+                  </Badge>
                 </TableCell>
                 <TableCell>
                   <Badge 
@@ -203,6 +265,15 @@ export default function AdminPanel() {
                 <DialogDescription className="flex flex-wrap gap-3 pt-2">
                   <Badge variant="outline" className="text-sm">
                     By {selectedSubmission.username}
+                  </Badge>
+                  <Badge 
+                    variant={getVisibilityColor(selectedSubmission.visibility)} 
+                    className="text-sm flex items-center gap-1"
+                  >
+                    {selectedSubmission.visibility === 'private' && <Lock className="h-3.5 w-3.5" />}
+                    {selectedSubmission.visibility === 'internal' && <Users className="h-3.5 w-3.5" />}
+                    {selectedSubmission.visibility === 'public' && <Globe className="h-3.5 w-3.5" />}
+                    {selectedSubmission.visibility.charAt(0).toUpperCase() + selectedSubmission.visibility.slice(1)}
                   </Badge>
                   <Badge variant="outline" className="text-sm">
                     Status: {selectedSubmission.status}
