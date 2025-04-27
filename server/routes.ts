@@ -237,14 +237,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       console.log("Validation passed, creating project submission");
       
-      // Insert into database
+      // Insert with direct SQL for better reliability
+      const client = await pool.connect();
       try {
-        const submission = await storage.createProjectSubmission(validationResult.data);
+        // Convert camelCase to snake_case for the database
+        const { 
+          username, 
+          title, 
+          description, 
+          problem, 
+          technology, 
+          impact, 
+          team, 
+          status, 
+          contact,
+          visibility,
+          userId 
+        } = validationResult.data;
+        
+        console.log("Inserting new project submission via direct SQL...");
+        
+        const now = new Date();
+        
+        const result = await client.query(`
+          INSERT INTO project_submissions (
+            username, 
+            title, 
+            description,
+            problem,
+            technology,
+            impact,
+            team,
+            status,
+            contact,
+            visibility,
+            created_at,
+            user_id
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          RETURNING 
+            id, 
+            username, 
+            title, 
+            description, 
+            problem, 
+            technology, 
+            impact, 
+            team, 
+            status, 
+            contact,
+            visibility,
+            created_at AS "createdAt", 
+            user_id AS "userId"
+        `, [
+          username,
+          title,
+          description,
+          problem || "",
+          technology || "",
+          impact || "",
+          team || "",
+          status || "In Progress",
+          contact || "",
+          visibility || "private",
+          now,
+          userId || null
+        ]);
+        
+        const submission = result.rows[0];
         console.log("Project submission created successfully:", submission);
         res.status(201).json(submission);
-      } catch (dbError) {
-        console.error('Database error creating project submission:', dbError);
-        throw dbError;
+      } finally {
+        client.release();
       }
     } catch (error) {
       console.error('Error creating project submission:', error);
@@ -305,23 +368,43 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid ID format' });
       }
 
-      // Check if submission exists
-      const submission = await storage.getProjectSubmission(id);
-      if (!submission) {
-        return res.status(404).json({ error: 'Project submission not found' });
-      }
-      
-      // Delete the submission
-      const success = await storage.deleteProjectSubmission(id);
-      
-      if (success) {
-        res.status(200).json({ success: true, message: 'Project submission deleted successfully' });
-      } else {
-        res.status(500).json({ error: 'Failed to delete project submission' });
+      // Use direct SQL for better reliability
+      const client = await pool.connect();
+      try {
+        // First check if the submission exists
+        console.log(`Checking if project submission ID ${id} exists...`);
+        const checkResult = await client.query(`
+          SELECT id FROM project_submissions WHERE id = $1
+        `, [id]);
+        
+        if (checkResult.rowCount === 0) {
+          return res.status(404).json({ error: 'Project submission not found' });
+        }
+        
+        // Delete the submission directly with SQL
+        console.log(`Deleting project submission ID ${id}...`);
+        const deleteResult = await client.query(`
+          DELETE FROM project_submissions WHERE id = $1
+        `, [id]);
+        
+        // Check rowCount safely with type assertion
+        if (deleteResult && typeof deleteResult.rowCount === 'number' && deleteResult.rowCount > 0) {
+          console.log(`Successfully deleted project submission ID ${id}`);
+          res.status(200).json({ success: true, message: 'Project submission deleted successfully' });
+        } else {
+          console.error(`Failed to delete project submission ID ${id} (no rows affected)`);
+          res.status(500).json({ error: 'Failed to delete project submission' });
+        }
+      } finally {
+        client.release();
       }
     } catch (error) {
       console.error('Error deleting project submission:', error);
-      res.status(500).json({ error: 'Failed to delete project submission' });
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      res.status(500).json({ 
+        error: 'Failed to delete project submission',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
