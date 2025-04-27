@@ -37,11 +37,13 @@ const ADMIN_PASSWORD = "password123";
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "digital-village-secret",
-    resave: false,
-    saveUninitialized: false,
+    resave: true,
+    saveUninitialized: true,
     cookie: { 
       secure: process.env.NODE_ENV === "production",
-      maxAge: 24 * 60 * 60 * 1000 // 24 hours
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true,
+      sameSite: 'lax'
     }
   };
 
@@ -218,10 +220,19 @@ export function setupAuth(app: Express) {
         }
         
         console.log(`User ${user.username} (ID: ${user.id}) successfully logged in`);
+        console.log(`- Session ID after login: ${req.sessionID}`);
+        console.log(`- Session after login:`, req.session);
+        
+        // Set cookie headers to ensure session persistence
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        
         return res.json({ 
           id: user.id,
           username: user.username,
-          message: "Login successful" 
+          message: "Login successful",
+          sessionId: req.sessionID, // Include session ID for debugging
+          authenticated: true
         });
       });
     })(req, res, next);
@@ -237,10 +248,24 @@ export function setupAuth(app: Express) {
   });
 
   app.get("/api/me", (req: Request, res: Response) => {
+    console.log('API /me endpoint:');
+    console.log(`- isAuthenticated: ${req.isAuthenticated()}`);
+    console.log(`- Session ID: ${req.sessionID}`);
+    console.log(`- Session data:`, req.session);
+    console.log(`- User data:`, req.user || 'No user');
+    
     if (!req.isAuthenticated()) {
+      console.log('User is NOT authenticated on /api/me endpoint');
       return res.status(401).json({ error: "Not authenticated" });
     }
+    
     const user = req.user as Express.User;
+    console.log(`User is authenticated as ${user.username} (ID: ${user.id})`);
+    
+    // Set cache control headers to prevent caching
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    
     res.json({
       id: user.id,
       username: user.username
