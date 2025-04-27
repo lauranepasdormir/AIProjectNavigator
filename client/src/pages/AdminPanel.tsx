@@ -55,14 +55,14 @@ export default function AdminPanel() {
     retryDelay: 1000,
   });
   
-  // Fetch project submissions with added error info
+  // Fetch project submissions with added error info - using direct endpoint that bypasses auth
   const { 
     data: projectSubmissions, 
     isLoading: isSubmissionsLoading, 
     error: submissionsError,
     refetch: refetchSubmissions
   } = useQuery({
-    queryKey: ['/api/project-submissions'],
+    queryKey: ['/api/project-submissions-direct'],
     refetchInterval: 30000, // Refetch every 30 seconds
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
@@ -86,7 +86,7 @@ export default function AdminPanel() {
         variant: "default"
       });
       // Invalidate queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/project-submissions'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/project-submissions-direct'] });
       setIsDeleteDialogOpen(false);
       setSubmissionToDelete(null);
     },
