@@ -19,6 +19,7 @@ function Router() {
       <main className="flex-1">
         <Switch>
           <Route path="/" component={ChatForm} />
+          <Route path="/app" component={ChatForm} />
           <Route path="/login" component={LoginPage} />
           <ProtectedRoute path="/admin" component={AdminPanel} />
           <Route component={NotFound} />

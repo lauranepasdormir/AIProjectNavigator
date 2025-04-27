@@ -85,8 +85,57 @@ The application automatically selects the appropriate database connection based 
 npm run dev
 
 # Build for production
-npm run build
+node scripts/build-for-production.js
 
 # Start in production mode
-npm run start
+NODE_ENV=production tsx server/index.ts
 ```
+
+## Preparing for Deployment
+
+Before deploying the application, make sure to:
+
+1. Build the application for production:
+   ```bash
+   node scripts/build-for-production.js
+   ```
+
+2. Verify deployment readiness:
+   ```bash
+   node scripts/verify-deployment-readiness.js
+   ```
+
+3. Ensure your production database is properly configured:
+   ```bash
+   node scripts/set-env.js prod
+   ```
+
+4. Test the production database connection:
+   ```bash
+   NODE_ENV=production node scripts/test-db-connection.js
+   ```
+
+## Deploying on Replit
+
+To deploy the application on Replit:
+
+1. Run the deployment readiness verification:
+   ```bash
+   node scripts/verify-deployment-readiness.js
+   ```
+
+2. If all tests pass, click the "Deploy" button in the Replit UI.
+
+3. The deployment process will:
+   - Build the application (using the build script)
+   - Set up the environment
+   - Start the server in production mode
+   - Perform health checks (which will use the root endpoint)
+
+4. Once deployed, your application will be available at your Replit deployment URL.
+
+### Important Deployment Notes
+
+- The root endpoint (/) is configured to respond immediately for health checks
+- The actual application is accessible via both / and /app routes in the deployed application
+- The application automatically uses the production database when deployed
