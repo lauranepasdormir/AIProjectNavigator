@@ -12,6 +12,14 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  */
 export async function generateDraftResponse(question: string, context?: Record<string, string>): Promise<string> {
   try {
+    // Validate API key is available
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not set in environment");
+      throw new Error("OpenAI API key is not configured");
+    }
+    
+    console.log("Starting draft generation with OpenAI for question:", question);
+    
     // Format context as a string if available
     let contextString = "";
     if (context && Object.keys(context).length > 0) {
@@ -35,14 +43,33 @@ Make your suggestion helpful, concise, and professional. Write in first person a
 Limit your response to 3-4 sentences maximum, focusing on the most important aspects.
 `;
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
-      max_tokens: 200,
-    });
-
-    return response.choices[0].message.content || "Sorry, I couldn't generate a suggestion.";
+    console.log("Calling OpenAI API...");
+    
+    try {
+      // First attempt with gpt-4o model
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 200,
+      });
+      
+      console.log("OpenAI API response received successfully");
+      return response.choices[0].message.content || "Sorry, I couldn't generate a suggestion.";
+    } catch (modelError) {
+      // If the first model fails, try the fallback model
+      console.error("Error with gpt-4o model, trying fallback model", modelError);
+      
+      const fallbackResponse = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: prompt }],
+        temperature: 0.7,
+        max_tokens: 200,
+      });
+      
+      console.log("Fallback model response received successfully");
+      return fallbackResponse.choices[0].message.content || "Sorry, I couldn't generate a suggestion.";
+    }
   } catch (error) {
     console.error("Error generating draft response:", error);
     // More detailed error logging

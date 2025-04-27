@@ -82,9 +82,23 @@ export default function ChatForm() {
       console.error('Error generating draft:', error);
       setGeneratingDraftForQuestion(null);
       
+      let errorMessage = "Failed to generate a draft suggestion. Please try again.";
+      
+      // Try to extract a more specific error message if available
+      if (error instanceof Error) {
+        errorMessage = error.message || errorMessage;
+      } else if (error && typeof error === 'object') {
+        // Safe way to convert any object to string
+        try {
+          errorMessage = String(error) || errorMessage;
+        } catch (e) {
+          console.error("Could not convert error to string:", e);
+        }
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to generate a draft suggestion. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
