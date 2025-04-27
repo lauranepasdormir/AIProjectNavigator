@@ -19,9 +19,32 @@ export function ChatBubble({
   const isBot = message.type === 'bot';
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
+  // Define keywords that indicate a non-draftable message
+  const noDraftButtonKeywords = [
+    "preview your project",
+    "project visibility",
+    "congratulations",
+    "digital village profile",
+    "update your digital village profile",
+    "would you like to update",
+    "thanks for sharing your project"
+  ];
+  
+  // Function to check if message contains any of the keywords
+  const containsKeyword = (content: string) => {
+    return noDraftButtonKeywords.some(keyword => 
+      content.toLowerCase().includes(keyword.toLowerCase())
+    );
+  };
+  
   // Only show the draft button for bot messages (questions) that have the draft handler
   // And only starting from the description question (index 2) onwards
-  const showDraftButton = isBot && onRequestDraft && typeof currentQuestion === 'number' && currentQuestion >= 2;
+  // And only for messages that don't contain any of the keywords
+  const showDraftButton = isBot 
+    && onRequestDraft 
+    && typeof currentQuestion === 'number' 
+    && currentQuestion >= 2
+    && !containsKeyword(message.content);
   
   return (
     <div className={cn(
