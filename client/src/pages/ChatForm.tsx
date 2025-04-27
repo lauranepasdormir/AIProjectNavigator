@@ -376,7 +376,7 @@ export default function ChatForm() {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex justify-center items-center py-4 sm:py-6 md:py-8 px-2 sm:px-4 flex-grow">
+      <div className="flex justify-center items-center py-2 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
         <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Form Header */}
           <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center shadow-md">
