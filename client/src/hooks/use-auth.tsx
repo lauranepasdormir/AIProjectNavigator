@@ -70,12 +70,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Fix: Server expects 'username' not 'email'
       console.log("Login attempt with:", { username: email, password: '***' });
-      const response = await apiRequest("/api/login", "POST", { 
-        username: email, // Note: Send as username
-        password 
+      
+      // Use a simple fetch directly here to avoid issues with cloning
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          username: email, // Note: Send as username
+          password 
+        }),
+        credentials: "include",
       });
       
-      // NOTE: No need to check response.ok since apiRequest already throws on non-OK
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Login API Error Response:', errorData);
+        throw new Error(
+          errorData.message || 
+          errorData.error || 
+          `Login Error: ${response.status} ${response.statusText}`
+        );
+      }
+      
+      // Parse the response 
       const userData = await response.json();
       console.log("Login successful, user data:", userData);
       setUser(userData);

@@ -32,8 +32,16 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
-  return res;
+  // Create a clone of the response before checking if it's ok
+  // This prevents the "body stream already read" error
+  const resClone = res.clone();
+  
+  try {
+    await throwIfResNotOk(res);
+    return resClone;
+  } catch (error) {
+    throw error;
+  }
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
