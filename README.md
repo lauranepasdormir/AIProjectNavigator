@@ -48,6 +48,18 @@ node scripts/set-env.js dev
 node scripts/set-env.js prod
 ```
 
+### Testing Database Connection
+
+You can test the database connection for the current environment using the `test-db-connection.js` script:
+
+```bash
+# Test connection to development database
+NODE_ENV=development node scripts/test-db-connection.js
+
+# Test connection to production database
+NODE_ENV=production node scripts/test-db-connection.js
+```
+
 ## Database Configuration
 
 The application automatically selects the appropriate database connection based on the current environment:
