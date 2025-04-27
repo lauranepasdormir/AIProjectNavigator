@@ -54,7 +54,7 @@ node scripts/ensure-server-public.js
 
 # Step 4: Fix admin panel and database issues
 echo -e "\n${YELLOW}Step 4: Fixing admin panel and database for production...${RESET}"
-node scripts/fix-admin-panel.js
+node scripts/fix-production-admin.js
 
 # Step 5: Verify deployment readiness
 echo -e "\n${YELLOW}Step 5: Verifying deployment readiness...${RESET}"

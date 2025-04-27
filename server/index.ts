@@ -3,6 +3,7 @@ import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fs from "fs";
+import { performStartupChecks } from "./startup-checks";
 
 const app = express();
 app.use(express.json());
@@ -92,6 +93,10 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Run startup checks to verify database configuration
+  await performStartupChecks();
+  
+  // Register routes and get HTTP server
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
