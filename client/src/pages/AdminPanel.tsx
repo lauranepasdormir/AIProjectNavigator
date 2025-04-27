@@ -48,11 +48,30 @@ export default function AdminPanel() {
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const { toast } = useToast();
 
-  // Fetch project submissions
-  const { data: projectSubmissions, isLoading, error } = useQuery({
-    queryKey: ['/api/project-submissions'],
-    refetchInterval: 30000 // Refetch every 30 seconds
+  // Check auth status first - this adds a simple verification of login status
+  const { data: authStatus, isLoading: isAuthLoading } = useQuery({
+    queryKey: ['/api/me'],
+    retry: 1,
+    retryDelay: 1000,
   });
+  
+  // Fetch project submissions with added error info
+  const { 
+    data: projectSubmissions, 
+    isLoading: isSubmissionsLoading, 
+    error: submissionsError,
+    refetch: refetchSubmissions
+  } = useQuery({
+    queryKey: ['/api/project-submissions'],
+    refetchInterval: 30000, // Refetch every 30 seconds
+    retry: 3,
+    retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
+    enabled: !!authStatus, // Only fetch if authenticated
+  });
+  
+  // Combined loading state
+  const isLoading = isAuthLoading || isSubmissionsLoading;
+  const error = submissionsError;
   
   // Delete mutation
   const deleteMutation = useMutation({
@@ -226,24 +245,51 @@ export default function AdminPanel() {
       ) : error ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
           <strong className="font-bold block mb-1">Failed to load submissions</strong>
-          <span className="block sm:inline mb-2">There was a problem connecting to the database. Please try again or contact support.</span>
-          <div className="mt-2 text-xs">
+          <span className="block sm:inline mb-2">
+            {!authStatus 
+              ? "You may not be authenticated. Please try logging in again." 
+              : "There was a problem connecting to the database. Please try again or contact support."}
+          </span>
+          
+          {/* Display detailed error information */}
+          <div className="mt-2 mb-3 text-sm bg-red-50 p-2 rounded border border-red-200">
+            <p className="font-semibold">Error details:</p>
+            <code className="text-xs block mt-1 overflow-auto max-h-24">
+              {error instanceof Error 
+                ? `${error.name}: ${error.message}` 
+                : 'Unknown error occurred'}
+            </code>
+          </div>
+          
+          <div className="mt-2 flex space-x-2">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => {
                 // Force refetch
-                queryClient.invalidateQueries({ queryKey: ['/api/project-submissions'] });
+                refetchSubmissions();
                 toast({
                   title: "Retrying",
                   description: "Attempting to reload project submissions",
                   variant: "default"
                 });
               }}
-              className="mr-2"
             >
               Retry
             </Button>
+            
+            {!authStatus && (
+              <Button 
+                variant="default" 
+                size="sm" 
+                onClick={() => {
+                  // Redirect to login page
+                  window.location.href = '/login';
+                }}
+              >
+                Log in again
+              </Button>
+            )}
           </div>
         </div>
       ) : filteredSubmissions?.length === 0 ? (
