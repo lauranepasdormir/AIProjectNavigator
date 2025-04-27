@@ -34,12 +34,45 @@ export const db = drizzle({ client: pool, schema });
 
 // Test database connection on startup
 (async () => {
-  try {
-    const client = await pool.connect();
-    console.log('Database connection test successful');
-    client.release();
-  } catch (error) {
-    console.error('Database connection test failed:', error);
-    console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+  let connectionRetries = 0;
+  const maxRetries = 3;
+  
+  while (connectionRetries < maxRetries) {
+    try {
+      const client = await pool.connect();
+      console.log('Database connection test successful');
+      
+      // Verify tables exist
+      const tablesResult = await client.query(`
+        SELECT table_name 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public'
+      `);
+      
+      const tables = tablesResult.rows.map(row => row.table_name);
+      console.log(`Database contains the following tables: ${tables.join(', ')}`);
+      
+      // Check project_submissions table
+      if (tables.includes('project_submissions')) {
+        const countResult = await client.query('SELECT COUNT(*) FROM project_submissions');
+        console.log(`Found ${countResult.rows[0].count} project submissions in the database`);
+      }
+      
+      client.release();
+      break; // Success, exit retry loop
+    } catch (error) {
+      connectionRetries++;
+      console.error(`Database connection test failed (attempt ${connectionRetries}/${maxRetries}):`, error);
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      
+      if (connectionRetries >= maxRetries) {
+        console.error('Maximum connection retries reached. Please check your database configuration.');
+        // We'll continue with the app, but database operations may fail
+      } else {
+        // Wait before retrying
+        console.log(`Retrying in 2 seconds...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
   }
 })();
