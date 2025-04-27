@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "wouter";
-import { Database } from "lucide-react";
+import { Database, LogIn } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
 export function Footer() {
@@ -20,14 +20,19 @@ export function Footer() {
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-4">
-          {isAuthenticated && (
-            <div className="text-sm">
+          <div className="text-sm">
+            {isAuthenticated ? (
               <Link href="/admin" className="text-primary hover:text-primary/80 flex items-center gap-1 transition">
                 <Database className="h-3.5 w-3.5" />
                 <span>Admin Panel</span>
               </Link>
-            </div>
-          )}
+            ) : (
+              <Link href="/login" className="text-primary hover:text-primary/80 flex items-center gap-1 transition">
+                <LogIn className="h-3.5 w-3.5" />
+                <span>Admin Login</span>
+              </Link>
+            )}
+          </div>
           <div className="text-sm text-gray-500">
             © {currentYear} Digital Village Pty Ltd. All rights reserved.
           </div>

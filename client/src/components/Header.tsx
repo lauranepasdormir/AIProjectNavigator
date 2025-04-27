@@ -35,7 +35,7 @@ export function Header() {
             </Link>
           </Button>
 
-          {isAuthenticated ? (
+          {isAuthenticated && (
             <Button
               variant="outline"
               size="sm"
@@ -43,17 +43,6 @@ export function Header() {
             >
               <LogOut className="h-4 w-4 mr-2" />
               Logout
-            </Button>
-          ) : (
-            <Button
-              variant={location === "/login" ? "default" : "ghost"}
-              size="sm"
-              asChild
-            >
-              <Link href="/login">
-                <LogIn className="h-4 w-4 mr-2" />
-                Admin Login
-              </Link>
             </Button>
           )}
         </nav>
@@ -88,7 +77,7 @@ export function Header() {
               </Link>
             </Button>
 
-            {isAuthenticated ? (
+            {isAuthenticated && (
               <Button
                 variant="outline"
                 size="sm"
@@ -97,19 +86,6 @@ export function Header() {
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout
-              </Button>
-            ) : (
-              <Button
-                variant={location === "/login" ? "default" : "ghost"}
-                size="sm"
-                asChild
-                className="justify-start"
-                onClick={() => setMenuOpen(false)}
-              >
-                <Link href="/login">
-                  <LogIn className="h-4 w-4 mr-2" />
-                  Admin Login
-                </Link>
               </Button>
             )}
           </div>
