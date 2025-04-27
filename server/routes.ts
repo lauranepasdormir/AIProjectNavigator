@@ -61,23 +61,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/api/project-submissions', async (req: Request, res: Response) => {
     try {
+      console.log("Received project submission request:", JSON.stringify(req.body, null, 2));
+      
       // Validate incoming data
       const validationResult = insertProjectSubmissionSchema.safeParse(req.body);
       
       if (!validationResult.success) {
+        console.error('Validation failed:', validationResult.error.format());
         return res.status(400).json({ 
           error: 'Invalid project submission data',
           details: validationResult.error.format()
         });
       }
       
-      // Insert into database
-      const submission = await storage.createProjectSubmission(validationResult.data);
+      console.log("Validation passed, creating project submission");
       
-      res.status(201).json(submission);
+      // Insert into database
+      try {
+        const submission = await storage.createProjectSubmission(validationResult.data);
+        console.log("Project submission created successfully:", submission);
+        res.status(201).json(submission);
+      } catch (dbError) {
+        console.error('Database error creating project submission:', dbError);
+        throw dbError;
+      }
     } catch (error) {
       console.error('Error creating project submission:', error);
-      res.status(500).json({ error: 'Failed to create project submission' });
+      // Include more detailed error information in the response
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorStack = error instanceof Error ? error.stack : 'No stack trace';
+      res.status(500).json({ 
+        error: 'Failed to create project submission',
+        message: errorMessage,
+        stack: errorStack
+      });
     }
   });
 
