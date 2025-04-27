@@ -2,8 +2,21 @@ import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    try {
+      // First try to parse as JSON for more structured error information
+      const errorData = await res.json();
+      console.error('API Error Response:', errorData);
+      throw new Error(
+        errorData.message || 
+        errorData.error || 
+        `API Error: ${res.status} ${res.statusText}`
+      );
+    } catch (parseError) {
+      // If JSON parsing fails, fall back to text
+      const text = await res.text();
+      console.error('API Error (raw):', { status: res.status, text });
+      throw new Error(`${res.status}: ${text || res.statusText}`);
+    }
   }
 }
 
@@ -29,16 +42,34 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    const url = queryKey[0] as string;
+    console.log(`[QueryClient] Fetching data from: ${url}`);
+    
+    try {
+      const res = await fetch(url, {
+        credentials: "include",
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
+        }
+      });
+      
+      console.log(`[QueryClient] Response status for ${url}: ${res.status} ${res.statusText}`);
+      
+      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
+        console.warn(`[QueryClient] Unauthorized request to ${url}, returning null as configured`);
+        return null;
+      }
+      
+      await throwIfResNotOk(res);
+      const data = await res.json();
+      console.log(`[QueryClient] Data successfully fetched from ${url}`);
+      return data;
+    } catch (error) {
+      console.error(`[QueryClient] Error fetching from ${url}:`, error);
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({

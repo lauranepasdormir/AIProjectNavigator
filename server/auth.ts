@@ -5,6 +5,7 @@ import session from "express-session";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
+import { pool } from "./db"; 
 import { User as SelectUser } from "@shared/schema";
 
 declare global {
@@ -92,7 +93,7 @@ export function setupAuth(app: Express) {
         // Use direct SQL to update the admin password
         console.log("Admin user found, updating password...");
         try {
-          const client = await (global as any).pool.connect();
+          const client = await pool.connect();
           try {
             await client.query(
               'UPDATE users SET password = $1 WHERE username = $2 OR username = $3',
