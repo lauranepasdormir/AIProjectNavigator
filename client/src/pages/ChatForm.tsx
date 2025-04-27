@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { ToyBrick, Database, Download } from "lucide-react";
+import { ToyBrick, Database, Download, ExternalLink, Clock } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
 import { questions } from "@/lib/questions";
 import { generateMarkdown, formatMarkdownToHtml, downloadMarkdown } from "@/lib/markdown";
@@ -23,8 +23,9 @@ export default function ChatForm() {
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
   const [isSaved, setIsSaved] = useState(false);
   const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
-  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility'>('welcome');
+  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility' | 'success' | 'profile'>('welcome');
   const [selectedVisibility, setSelectedVisibility] = useState<string>("private"); // Default to private
+  const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
   
   // Toast notifications
   const { toast } = useToast();
@@ -317,10 +318,44 @@ export default function ChatForm() {
     }
     
     // Save to database
-    submitProjectMutation.mutate(answersWithVisibility);
+    submitProjectMutation.mutate(answersWithVisibility, {
+      onSuccess: () => {
+        // After successful submission, move to success stage
+        setOnboardingStage('success');
+        setTimeout(() => {
+          addBotMessage("🎉 Congratulations! Your project has been successfully submitted to Digital Village!");
+          setTimeout(() => {
+            addBotMessage("Your Digital Village profile is what clients see alongside your projects. A complete profile leads to stronger client impressions and more opportunities.");
+            setTimeout(() => {
+              addBotMessage("Would you like to update your Digital Village profile now?");
+              setOnboardingStage('profile');
+            }, 1000);
+          }, 1500);
+        }, 500);
+      }
+    });
     
     // Update local state
     setAnswers(answersWithVisibility);
+  };
+  
+  // Handle profile choice (Yes or Later)
+  const handleProfileChoice = (choice: 'yes' | 'later') => {
+    setProfileChoice(choice);
+    
+    if (choice === 'yes') {
+      addUserMessage("Yes, take me there!");
+      setTimeout(() => {
+        addBotMessage("Great choice! I'm opening the Digital Village Network App for you now. You'll be able to update your profile there.");
+        // Open Digital Village profile in a new tab
+        window.open('https://digitalvillage.app/', '_blank');
+      }, 500);
+    } else {
+      addUserMessage("Maybe later.");
+      setTimeout(() => {
+        addBotMessage("No problem! Remember you can update your Digital Village profile anytime to enhance your visibility to clients. Thanks for sharing your project with us!");
+      }, 500);
+    }
   };
   
   // Handle draft generation request
@@ -509,6 +544,29 @@ export default function ChatForm() {
                   >
                     <Download className="h-5 w-5 text-blue-600" />
                     Download Markdown
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            {/* Profile update choice buttons */}
+            {!isPreviewMode && onboardingStage === 'profile' && (
+              <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <Button
+                    onClick={() => handleProfileChoice('yes')}
+                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg flex items-center gap-2"
+                  >
+                    <ExternalLink className="h-5 w-5" />
+                    Yes, take me there!
+                  </Button>
+                  <Button
+                    onClick={() => handleProfileChoice('later')}
+                    variant="outline"
+                    className="px-6 py-3 text-base font-medium rounded-lg flex items-center gap-2"
+                  >
+                    <Clock className="h-5 w-5" />
+                    Maybe later
                   </Button>
                 </div>
               </div>
