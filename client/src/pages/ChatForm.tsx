@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { ToyBrick } from "lucide-react";
+import { ToyBrick, Database, Download } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
 import { questions } from "@/lib/questions";
 import { generateMarkdown, formatMarkdownToHtml, downloadMarkdown } from "@/lib/markdown";
@@ -452,7 +452,7 @@ export default function ChatForm() {
               </div>
             )}
             
-            {onboardingStage === 'questions' && (
+            {onboardingStage === 'questions' && !isPreviewMode && (
               <ChatInput 
                 placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
                 onSubmit={handleSubmit}
@@ -469,10 +469,49 @@ export default function ChatForm() {
                 onDownload={handleDownload}
                 onSave={handleSaveToDatabase}
                 onBackToChat={handleBackToChat}
-                isPreviewMode={isPreviewMode}
+                isPreviewMode={false}
                 isSaved={isSaved}
                 isSaving={submitProjectMutation.isPending}
               />
+            )}
+            
+            {/* Input area for preview mode */}
+            {isPreviewMode && (
+              <ChatInput 
+                placeholder=""
+                onSubmit={() => {}}
+                isComplete={true}
+                onShowPreview={undefined}
+                onDownload={handleDownload}
+                onSave={handleSaveToDatabase}
+                onBackToChat={handleBackToChat}
+                isPreviewMode={true}
+                isSaved={isSaved}
+                isSaving={submitProjectMutation.isPending}
+              />
+            )}
+            
+            {/* Additional buttons for visibility stage to submit and download */}
+            {!isPreviewMode && onboardingStage === 'visibility' && (
+              <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <Button
+                    onClick={handleSaveToDatabase}
+                    disabled={isSaved || submitProjectMutation.isPending}
+                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg flex items-center gap-2"
+                  >
+                    <Database className="h-5 w-5" />
+                    {submitProjectMutation.isPending ? 'Saving...' : isSaved ? 'Saved' : 'Submit Project'}
+                  </Button>
+                  <Button
+                    onClick={handleDownload}
+                    className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-base font-medium rounded-lg flex items-center gap-2"
+                  >
+                    <Download className="h-5 w-5" />
+                    Download Markdown
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         </div>
