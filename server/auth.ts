@@ -30,7 +30,8 @@ async function comparePasswords(supplied: string, stored: string) {
 
 // Hardcoded admin credentials for the MVP
 const ADMIN_EMAIL = "admin@digitalvillage.com.au";
-const ADMIN_PASSWORD = "password123";
+const ADMIN_USERNAME = "admin";
+const ADMIN_PASSWORD = "admin"; // Simplified for testing
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -47,17 +48,63 @@ export function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Create an admin user in the database if it doesn't exist
+  // Create or update the admin user in the database
   async function ensureAdminExists() {
     try {
-      const existingAdmin = await storage.getUserByUsername(ADMIN_EMAIL);
+      console.log("Checking for admin user...");
+      
+      // Try to find admin by email
+      let existingAdmin = await storage.getUserByUsername(ADMIN_EMAIL);
+      
+      // Also try to find admin by 'admin' username
       if (!existingAdmin) {
-        const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-        await storage.createUser({
-          username: ADMIN_EMAIL,
-          password: hashedPassword
-        });
-        console.log("Admin user created");
+        existingAdmin = await storage.getUserByUsername(ADMIN_USERNAME);
+      }
+      
+      const hashedPassword = await hashPassword(ADMIN_PASSWORD);
+      
+      if (!existingAdmin) {
+        // Create admin user if doesn't exist
+        console.log("Creating new admin user...");
+        
+        // First try with admin username
+        try {
+          await storage.createUser({
+            username: ADMIN_USERNAME,
+            password: hashedPassword
+          });
+          console.log("Admin user created with username: admin");
+        } catch (adminCreateError) {
+          console.error("Error creating admin user with username admin:", adminCreateError);
+          
+          // Try with email as fallback
+          try {
+            await storage.createUser({
+              username: ADMIN_EMAIL,
+              password: hashedPassword
+            });
+            console.log("Admin user created with email");
+          } catch (emailCreateError) {
+            console.error("Error creating admin user with email:", emailCreateError);
+          }
+        }
+      } else {
+        // Use direct SQL to update the admin password
+        console.log("Admin user found, updating password...");
+        try {
+          const client = await (global as any).pool.connect();
+          try {
+            await client.query(
+              'UPDATE users SET password = $1 WHERE username = $2 OR username = $3',
+              [hashedPassword, ADMIN_EMAIL, ADMIN_USERNAME]
+            );
+            console.log("Admin password updated successfully");
+          } finally {
+            client.release();
+          }
+        } catch (updateError) {
+          console.error("Error updating admin password:", updateError);
+        }
       }
     } catch (error) {
       console.error("Error ensuring admin exists:", error);
@@ -70,23 +117,38 @@ export function setupAuth(app: Express) {
   passport.use(
     new LocalStrategy(
       {
-        usernameField: 'email',
+        usernameField: 'username',
         passwordField: 'password',
       },
-      async (email, password, done) => {
+      async (username, password, done) => {
         try {
-          const user = await storage.getUserByUsername(email);
+          console.log(`Login attempt for username: ${username}`);
+          
+          // First try using username as-is
+          let user = await storage.getUserByUsername(username);
+          
+          // If not found, check if they're using 'admin' instead of the email
+          if (!user && username === 'admin') {
+            console.log('Checking for admin email account instead of "admin"');
+            user = await storage.getUserByUsername(ADMIN_EMAIL);
+          }
+          
           if (!user) {
+            console.log(`User not found: ${username}`);
             return done(null, false, { message: "Invalid credentials" });
           }
 
+          console.log(`User found, checking password for: ${user.username}`);
           const isValid = await comparePasswords(password, user.password);
           if (!isValid) {
+            console.log(`Invalid password for user: ${username}`);
             return done(null, false, { message: "Invalid credentials" });
           }
 
+          console.log(`Login successful for: ${user.username}`);
           return done(null, user);
         } catch (error) {
+          console.error('Authentication error:', error);
           return done(error);
         }
       }

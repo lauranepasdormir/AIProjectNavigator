@@ -5,6 +5,7 @@ import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
 import { generateDraftResponse } from "./openai";
 import { setupAuth } from "./auth";
+import { pool } from "./db";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add CORS headers for API requests
@@ -44,26 +45,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       try {
         console.log(`Fetching all project submissions (attempt ${retries + 1}/${maxRetries})...`);
         
-        // Add a detailed log about the authentication
+        // Verify authentication
         console.log('User authentication:', req.isAuthenticated() ? 'Authenticated' : 'Not authenticated');
         if (req.user) {
           console.log('User details:', req.user);
         }
         
-        const submissions = await storage.getAllProjectSubmissions();
-        console.log(`Retrieved ${submissions.length} project submissions:`, 
-          submissions.map(s => ({ id: s.id, title: s.title })));
-        
-        // Set explicit cache control headers
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        
-        return res.json(submissions);
+        // Using direct SQL query through the pool instead of the ORM for reliability
+        const client = await pool.connect();
+        try {
+          console.log('Database client acquired, executing query...');
+          const result = await client.query('SELECT * FROM project_submissions ORDER BY id DESC');
+          const submissions = result.rows;
+          
+          console.log(`Retrieved ${submissions.length} project submissions via direct SQL:`, 
+            submissions.slice(0, 3).map(s => ({ id: s.id, title: s.title })));
+          
+          // Set explicit cache control headers
+          res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+          res.setHeader('Pragma', 'no-cache');
+          res.setHeader('Expires', '0');
+          
+          return res.json(submissions);
+        } finally {
+          // Release client back to the pool
+          client.release();
+          console.log('Database client released');
+        }
       } catch (error) {
         retries++;
         console.error(`Error fetching project submissions (attempt ${retries}/${maxRetries}):`, error);
         console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+        console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
         
         if (retries >= maxRetries) {
           console.error('Maximum retries reached, returning error response');
