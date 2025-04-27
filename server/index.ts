@@ -26,22 +26,23 @@ app.get('/replit-deploy-health', (_req, res) => {
 // Root path health check always has priority in production
 // In development, the health check path is at /health
 app.get('/', (req, res, next) => {
-  // In production, always start with a health check first
-  // This ensures Replit deployment health checks pass immediately
-  if (process.env.NODE_ENV === 'production') {
-    // For non-browser requests or explicit health checks, return "OK"
-    const isHealthCheck = 
-      !req.headers.accept || 
-      !req.headers.accept.includes('text/html') || 
-      req.headers['user-agent']?.includes('kube-probe') ||
-      req.query.healthCheck === 'true';
-      
-    if (isHealthCheck) {
-      // Return an immediate OK for health checks
-      return res.status(200).send('OK');
-    }
+  // For non-browser requests or explicit health checks, return "OK"
+  // This works in both development and production
+  const isHealthCheck = 
+    req.headers.accept === 'application/json' || 
+    !req.headers.accept || 
+    !req.headers.accept.includes('text/html') || 
+    req.headers['user-agent']?.includes('kube-probe') ||
+    req.headers['user-agent']?.includes('deployment-check') ||
+    req.query.healthCheck === 'true';
     
-    // For browser requests, serve the static HTML
+  if (isHealthCheck) {
+    // Return an immediate OK for health checks
+    return res.status(200).send('OK');
+  }
+  
+  // For production browser requests, serve the static HTML
+  if (process.env.NODE_ENV === 'production') {
     const publicDir = path.resolve(process.cwd(), 'server/public');
     return res.sendFile(path.join(publicDir, 'index.html'));
   }

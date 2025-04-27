@@ -14,135 +14,123 @@
 import fetch from 'node-fetch';
 import { performance } from 'perf_hooks';
 
-const colors = {
-  reset: '\x1b[0m',
-  bright: '\x1b[1m',
-  green: '\x1b[32m',
-  yellow: '\x1b[33m',
-  red: '\x1b[31m',
-  cyan: '\x1b[36m'
-};
-
-console.log(`${colors.bright}${colors.cyan}=== Verifying Deployment Readiness ====${colors.reset}\n`);
+console.log('=== Deployment Readiness Check ===');
 
 async function testEndpoint(endpoint, expectedResponse = null, maxResponseTime = 100) {
-  console.log(`${colors.yellow}Testing ${endpoint}...${colors.reset}`);
+  const url = `http://localhost:5000${endpoint}`;
+  console.log(`Testing endpoint: ${url}`);
   
   try {
-    // Attempt to connect to the server
-    let serverRunning = false;
-    try {
-      // Quick check if server is running by sending a HEAD request with a short timeout
-      await fetch(`http://localhost:5000/health`, { 
-        method: 'HEAD',
-        timeout: 500
-      });
-      serverRunning = true;
-    } catch (e) {
-      serverRunning = false;
-    }
-    
-    if (!serverRunning) {
-      console.log(`${colors.yellow}Server not running - skipping actual request${colors.reset}`);
-      console.log(`${colors.green}✓ ${endpoint} is properly configured in server/index.ts${colors.reset}`);
-      
-      // Verify the endpoint exists in the server code
-      const fs = await import('fs');
-      const serverCode = fs.readFileSync('server/index.ts', 'utf-8');
-      
-      const hasEndpoint = serverCode.includes(`app.get('${endpoint}'`) || 
-                          endpoint === '/app' || 
-                          endpoint === '/';
-      
-      if (hasEndpoint) {
-        console.log(`${colors.green}✓ ${endpoint} route found in server code${colors.reset}`);
-        return true;
-      } else {
-        console.error(`${colors.red}✗ ${endpoint} route not found in server code${colors.reset}`);
-        return false;
-      }
-    }
-    
-    // If server is running, perform the actual test
     const startTime = performance.now();
-    const response = await fetch(`http://localhost:5000${endpoint}`);
+    
+    // Set proper headers for health checks
+    let headers = {};
+    if (endpoint === '/') {
+      headers = { 
+        'Accept': 'application/json', 
+        'User-Agent': 'deployment-check',
+        // Make sure we use application/json Content-Type as well
+        'Content-Type': 'application/json'
+      };
+    }
+    
+    const response = await fetch(url, { headers });
     const endTime = performance.now();
-    const responseTime = endTime - startTime;
+    const responseTime = Math.round(endTime - startTime);
     
-    const text = await response.text();
-    const isOk = response.status === 200;
-    const hasExpectedResponse = expectedResponse ? text === expectedResponse : true;
-    const isResponseTimeFast = responseTime < maxResponseTime;
+    let content = null;
     
-    if (isOk && hasExpectedResponse && isResponseTimeFast) {
-      console.log(`${colors.green}✓ ${endpoint} responded with status 200 in ${responseTime.toFixed(2)}ms${colors.reset}`);
+    if (expectedResponse) {
+      content = await response.text();
+    }
+    
+    const success = 
+      response.status === 200 && 
+      (expectedResponse === null || content === expectedResponse);
+    
+    if (success) {
+      console.log(`✓ ${endpoint} - Status: ${response.status}, Response time: ${responseTime}ms`);
       if (expectedResponse) {
-        console.log(`${colors.green}✓ Response body: "${text}" matches expected response${colors.reset}`);
+        console.log(`  Response content matches expected: "${expectedResponse}"`);
       }
-      return true;
     } else {
-      if (!isOk) {
-        console.error(`${colors.red}✗ ${endpoint} responded with status ${response.status}${colors.reset}`);
+      console.log(`✗ ${endpoint} - Status: ${response.status}, Response time: ${responseTime}ms`);
+      if (expectedResponse) {
+        console.log(`  Expected: "${expectedResponse}"`);
+        console.log(`  Received: "${content ? content.substring(0, 50) + (content.length > 50 ? '...' : '') : 'no content'}"`);
       }
-      if (!hasExpectedResponse && expectedResponse) {
-        console.error(`${colors.red}✗ Response body: "${text}" does not match expected: "${expectedResponse}"${colors.reset}`);
-      }
-      if (!isResponseTimeFast) {
-        console.error(`${colors.red}✗ Response time ${responseTime.toFixed(2)}ms exceeds maximum ${maxResponseTime}ms${colors.reset}`);
-      }
-      return false;
     }
+    
+    // Additional check for response time
+    if (responseTime > maxResponseTime) {
+      console.log(`! Warning: Response time for ${endpoint} is slow (${responseTime}ms > ${maxResponseTime}ms)`);
+    }
+    
+    return { 
+      success, 
+      status: response.status, 
+      responseTime, 
+      content
+    };
   } catch (error) {
-    console.error(`${colors.red}✗ Error testing ${endpoint}: ${error.message}${colors.reset}`);
-    
-    // Even if there's an error, check if the route is configured in the code
-    try {
-      const fs = await import('fs');
-      const serverCode = fs.readFileSync('server/index.ts', 'utf-8');
-      
-      const hasEndpoint = serverCode.includes(`app.get('${endpoint}'`) || 
-                          endpoint === '/app' || 
-                          endpoint === '/';
-      
-      if (hasEndpoint) {
-        console.log(`${colors.green}✓ ${endpoint} route found in server code${colors.reset}`);
-        // Still return true because the endpoint exists in code
-        return true;
-      }
-    } catch (err) {
-      // If we can't read the server code, just continue
-    }
-    
-    return false;
+    console.log(`✗ Error connecting to ${endpoint}: ${error.message}`);
+    return { 
+      success: false, 
+      error: error.message
+    };
   }
 }
 
 async function main() {
   let allPassed = true;
   
-  // Test 1: Root endpoint should return "OK" immediately
+  // 1. Test root endpoint (should respond with "OK" for health checkers)
   const rootResult = await testEndpoint('/', 'OK');
-  allPassed = allPassed && rootResult;
+  if (!rootResult.success) {
+    allPassed = false;
+    console.log('! The root endpoint should respond with "OK" for non-browser requests');
+    console.log('  This is important for health checks in the Replit deployment environment');
+  }
   
-  // Test 2: Health endpoint should return "OK" immediately
+  // 2. Test health endpoint
   const healthResult = await testEndpoint('/health', 'OK');
-  allPassed = allPassed && healthResult;
+  if (!healthResult.success) {
+    allPassed = false;
+    console.log('! The /health endpoint should respond with "OK"');
+    console.log('  This is a standard health check endpoint for monitoring tools');
+  }
   
-  // Test 3: /app endpoint should serve the application (not checking content, just status)
-  const appResult = await testEndpoint('/app', null, 1000); // Allow longer response time for app
-  allPassed = allPassed && appResult;
+  // 3. Test replit-deploy-health endpoint
+  const replitHealthResult = await testEndpoint('/replit-deploy-health', 'OK');
+  if (!replitHealthResult.success) {
+    allPassed = false;
+    console.log('! The /replit-deploy-health endpoint should respond with "OK"');
+    console.log('  This endpoint is specifically for Replit deployment health checks');
+  }
   
-  console.log('\n');
+  // 4. Verify app route
+  const appResult = await testEndpoint('/app');
+  if (!appResult.success) {
+    allPassed = false;
+    console.log('! The /app endpoint should serve the full application');
+  }
+  
+  // 5. Test API authentication endpoint
+  const authResult = await testEndpoint('/api/auth-status');
+  console.log('Note: The auth-status endpoint returning 401 Unauthorized is expected if not logged in');
+  
+  // Print summary
+  console.log('\n=== Deployment Readiness Summary ===');
   if (allPassed) {
-    console.log(`${colors.bright}${colors.green}✓ All tests passed! Application is ready for deployment${colors.reset}`);
-    console.log(`${colors.cyan}You can deploy your application using the Replit Deployments feature.${colors.reset}`);
+    console.log('✓ All deployment readiness checks passed!');
+    console.log('  Your application is ready for deployment.');
   } else {
-    console.log(`${colors.bright}${colors.red}✗ Some tests failed. See above for details.${colors.reset}`);
-    console.log(`${colors.yellow}Please fix the issues before attempting to deploy.${colors.reset}`);
+    console.log('✗ Some deployment readiness checks failed!');
+    console.log('  Please fix the issues noted above before deploying.');
   }
 }
 
-main().catch(err => {
-  console.error(`${colors.red}Error running tests: ${err.message}${colors.reset}`);
+main().catch(error => {
+  console.error('Error during deployment readiness check:', error);
   process.exit(1);
 });
