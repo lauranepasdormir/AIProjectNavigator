@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       // Fix: Server expects 'username' not 'email'
-      console.log("Login attempt with:", { username: email, password: '***' });
+      console.log("Login attempt with:", { username: email });
       
       // Use a simple fetch directly here to avoid issues with cloning
       const response = await fetch("/api/login", {
@@ -82,22 +82,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         credentials: "include",
       });
       
+      // For debugging - log the status
+      console.log(`Login response status: ${response.status} ${response.statusText}`);
+      
+      let responseData;
+      try {
+        // Try to parse the response as JSON
+        responseData = await response.json();
+        console.log("Login response data:", responseData);
+      } catch (e) {
+        console.error("Error parsing login response as JSON:", e);
+        // Handle non-JSON responses
+        const textResponse = await response.text();
+        console.log("Login response text:", textResponse);
+        throw new Error(`Login Error (non-JSON response): ${response.status} ${response.statusText}`);
+      }
+      
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Login API Error Response:', errorData);
         throw new Error(
-          errorData.message || 
-          errorData.error || 
+          responseData.message || 
+          responseData.error || 
           `Login Error: ${response.status} ${response.statusText}`
         );
       }
       
-      // Parse the response 
-      const userData = await response.json();
-      console.log("Login successful, user data:", userData);
-      setUser(userData);
+      console.log("Login successful, user data:", responseData);
+      setUser(responseData);
       setIsAuthenticated(true);
+      
+      // Invalidate both endpoints to ensure fresh data
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/project-submissions-direct"] });
       
       toast({
         title: "Login successful",

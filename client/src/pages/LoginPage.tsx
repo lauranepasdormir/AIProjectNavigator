@@ -35,9 +35,15 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      console.log("Attempting login with:", { email, passwordLength: password?.length });
       await login(email, password);
-      setLocation("/admin");
+      console.log("Login successful, redirecting to admin panel");
+      // Delay the redirect slightly to ensure state is properly updated
+      setTimeout(() => {
+        setLocation("/admin");
+      }, 500);
     } catch (error) {
+      console.error("Login form error:", error);
       setError(error instanceof Error ? error.message : "Login failed");
     } finally {
       setIsLoading(false);

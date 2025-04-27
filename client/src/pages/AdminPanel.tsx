@@ -67,6 +67,35 @@ export default function AdminPanel() {
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
     enabled: true, // Always fetch regardless of authentication status
+    queryFn: async () => {
+      console.log("Directly fetching project submissions from bypass endpoint");
+      
+      try {
+        const res = await fetch('/api/project-submissions-direct', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          credentials: 'include'
+        });
+        
+        console.log(`Direct API response status: ${res.status} ${res.statusText}`);
+        
+        if (!res.ok) {
+          throw new Error(`API Error: ${res.status} ${res.statusText}`);
+        }
+        
+        const data = await res.json();
+        console.log(`Retrieved ${data.length} submissions directly`);
+        return data;
+      } catch (error) {
+        console.error("Error fetching submissions directly:", error);
+        throw error;
+      }
+    }
   });
   
   // Combined loading state
