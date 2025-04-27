@@ -14,11 +14,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Admin route - requires authentication
   app.get('/api/project-submissions', isAuthenticated, async (req: Request, res: Response) => {
     try {
+      console.log('Fetching all project submissions...');
       const submissions = await storage.getAllProjectSubmissions();
+      console.log(`Retrieved ${submissions.length} project submissions:`, 
+        submissions.map(s => ({ id: s.id, title: s.title })));
       res.json(submissions);
     } catch (error) {
       console.error('Error fetching project submissions:', error);
-      res.status(500).json({ error: 'Failed to fetch project submissions' });
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      res.status(500).json({ 
+        error: 'Failed to fetch project submissions',
+        message: error instanceof Error ? error.message : 'Unknown error' 
+      });
     }
   });
 

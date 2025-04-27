@@ -225,7 +225,26 @@ export default function AdminPanel() {
         </div>
       ) : error ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-          <span className="block sm:inline">Failed to load submissions. Please try again.</span>
+          <strong className="font-bold block mb-1">Failed to load submissions</strong>
+          <span className="block sm:inline mb-2">There was a problem connecting to the database. Please try again or contact support.</span>
+          <div className="mt-2 text-xs">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                // Force refetch
+                queryClient.invalidateQueries({ queryKey: ['/api/project-submissions'] });
+                toast({
+                  title: "Retrying",
+                  description: "Attempting to reload project submissions",
+                  variant: "default"
+                });
+              }}
+              className="mr-2"
+            >
+              Retry
+            </Button>
+          </div>
         </div>
       ) : filteredSubmissions?.length === 0 ? (
         <div className="text-center py-10 text-gray-500">

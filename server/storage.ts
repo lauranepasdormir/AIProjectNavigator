@@ -151,7 +151,18 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getAllProjectSubmissions(): Promise<ProjectSubmission[]> {
-    return await db.select().from(projectSubmissions);
+    try {
+      console.log('DatabaseStorage: Attempting to fetch all project submissions from database...');
+      const results = await db.select().from(projectSubmissions);
+      console.log(`DatabaseStorage: Successfully retrieved ${results.length} project submissions`);
+      return results;
+    } catch (error) {
+      console.error('DatabaseStorage: Error fetching all project submissions:', error);
+      console.error('DatabaseStorage: Error details:', error instanceof Error ? error.message : 'Unknown error');
+      console.error('DatabaseStorage: Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      // Re-throw to be handled by the calling code
+      throw error;
+    }
   }
   
   async createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission> {
