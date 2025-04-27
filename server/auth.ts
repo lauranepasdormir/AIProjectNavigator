@@ -30,7 +30,7 @@ async function comparePasswords(supplied: string, stored: string) {
 
 // Hardcoded admin credentials for the MVP
 const ADMIN_EMAIL = "admin@digitalvillage.com.au";
-const ADMIN_PASSWORD_HASH = "5d41402abc4b2a76b9719d911017c592"; // Will be replaced with proper hash
+const ADMIN_PASSWORD = "password123";
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
@@ -52,7 +52,7 @@ export function setupAuth(app: Express) {
     try {
       const existingAdmin = await storage.getUserByUsername(ADMIN_EMAIL);
       if (!existingAdmin) {
-        const hashedPassword = await hashPassword("password123");
+        const hashedPassword = await hashPassword(ADMIN_PASSWORD);
         await storage.createUser({
           username: ADMIN_EMAIL,
           password: hashedPassword

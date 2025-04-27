@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
+import createMemoryStore from "memorystore";
 
 export interface IStorage {
   // User methods
@@ -41,7 +42,7 @@ export class MemStorage implements IStorage {
     this.submissionCurrentId = 1;
     
     // Create a memory store for sessions (not persistent)
-    const MemoryStore = require('memorystore')(session);
+    const MemoryStore = createMemoryStore(session);
     this.sessionStore = new MemoryStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     });
@@ -80,21 +81,41 @@ export class MemStorage implements IStorage {
   
   async createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission> {
     const id = this.submissionCurrentId++;
+    
+    // Create a complete submission with all required fields
     const projectSubmission: ProjectSubmission = {
-      ...submission,
       id,
       createdAt: new Date(),
-      // Ensure all required fields are present
       username: submission.username ?? "Anonymous User",
-      team: submission.team ?? "", // Use nullish coalescing to handle undefined
+      title: submission.title,
+      description: submission.description,
+      problem: submission.problem,
+      technology: submission.technology,
+      impact: submission.impact,
+      team: submission.team ?? "",
+      status: submission.status,
+      contact: submission.contact,
+      visibility: submission.visibility ?? "private",
       userId: submission.userId ?? null
     };
+    
     this.projectSubmissions.set(id, projectSubmission);
     return projectSubmission;
   }
 }
 
 export class DatabaseStorage implements IStorage {
+  sessionStore: session.Store;
+  
+  constructor() {
+    // Create PostgreSQL session store
+    const PostgresSessionStore = connectPg(session);
+    this.sessionStore = new PostgresSessionStore({
+      pool,
+      createTableIfMissing: true
+    });
+  }
+  
   // User methods
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
