@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import path from "path";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import fs from "fs";
 
 const app = express();
 app.use(express.json());
@@ -11,14 +12,6 @@ app.use(express.urlencoded({ extended: false }));
 app.get('/health', (_req, res) => {
   res.status(200).send('OK');
 });
-
-// Add root endpoint that serves index.html
-app.get('/', (_req, res) => {
-  res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
-});
-
-// Serve static files from dist/public directory
-app.use(express.static(path.join(process.cwd(), 'dist/public')));
 
 app.use((req, res, next) => {
   const start = Date.now();
