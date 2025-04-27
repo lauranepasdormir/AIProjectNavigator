@@ -1,0 +1,7 @@
+[2025-04-27T12:22:35.602Z] Testing connection to database at ep-empty-mud-a6vd2iig.us-west-2.aws.neon.tech/neondb?sslmode=require
+[2025-04-27T12:22:35.605Z] Connecting to database...
+[2025-04-27T12:22:35.640Z] Database connection error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+[2025-04-27T12:22:35.641Z] Error details: Error: All attempts to open a WebSocket to connect to the database failed. Please refer to https://github.com/neondatabase/serverless/blob/main/CONFIG.md#websocketconstructor-typeof-websocket--undefined. Details: fetch failed
+    at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+    at async testDatabase (file:///home/runner/workspace/scripts/test-database-direct.js:34:20)
+[2025-04-27T12:22:35.641Z] Test complete
