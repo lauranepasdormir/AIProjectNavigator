@@ -1,0 +1,19 @@
+# Special configuration for Replit Deployments
+# This is separate from the development configuration
+
+run = "NODE_ENV=production tsx server/index.ts"
+hidden = [".config", ".git", ".github", "node_modules"]
+
+# Configure the deployment to use specific health check paths
+[deployment]
+run = "NODE_ENV=production tsx server/index.ts"
+ignorePorts = false
+deploymentTarget = "cloud"
+
+[deployment.metrics]
+path = "/replit-deploy-health"
+port = 5000
+
+[[ports]]
+localPort = 5000
+externalPort = 80

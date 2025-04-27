@@ -56,7 +56,39 @@ node scripts/ensure-server-public.js
 echo -e "\n${YELLOW}Step 4: Verifying deployment readiness...${RESET}"
 node scripts/verify-deployment-readiness.js
 
+# Step 5: Final verification of health check endpoints
+echo -e "\n${YELLOW}Step 5: Verifying health check endpoints...${RESET}"
+
+# Check the health endpoint
+HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5000/health")
+if [ "$HEALTH_STATUS" -eq 200 ]; then
+  echo -e "${GREEN}✓ Health endpoint (/health) is responding with HTTP 200${RESET}"
+else
+  echo -e "${RED}✗ Health endpoint (/health) is not responding correctly. Status: $HEALTH_STATUS${RESET}"
+fi
+
+# Check the replit deployment health endpoint
+REPLIT_HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5000/replit-deploy-health")
+if [ "$REPLIT_HEALTH_STATUS" -eq 200 ]; then
+  echo -e "${GREEN}✓ Replit deployment health endpoint (/replit-deploy-health) is responding with HTTP 200${RESET}"
+else
+  echo -e "${RED}✗ Replit deployment health endpoint (/replit-deploy-health) is not responding correctly. Status: $REPLIT_HEALTH_STATUS${RESET}"
+fi
+
+# Check non-browser root response
+ROOT_HEALTH_CONTENT=$(curl -s -H "Accept: application/json" "http://localhost:5000/")
+if [[ "$ROOT_HEALTH_CONTENT" == "OK" ]]; then
+  echo -e "${GREEN}✓ Root endpoint (/) returns 'OK' for non-browser requests${RESET}"
+else
+  echo -e "${YELLOW}! Root endpoint (/) is not returning 'OK' for non-browser requests${RESET}"
+  echo -e "${YELLOW}! This may cause issues with Replit's health checks${RESET}"
+fi
+
 echo -e "\n${BOLD}${CYAN}=== Deployment Preparation Complete ===${RESET}"
-echo -e "${CYAN}You can now deploy your application using the Replit Deploy button.${RESET}"
-echo -e "${CYAN}The application will serve a fast health check response at the root endpoint.${RESET}"
-echo -e "${CYAN}Users can access the full application at both '/' and '/app' routes.${RESET}\n"
+echo -e "${CYAN}Your application is now ready for deployment.${RESET}"
+echo -e "${CYAN}The application has been configured with special routes for health checks:${RESET}"
+echo -e "${CYAN}- /replit-deploy-health: For Replit's load balancer health checks${RESET}"
+echo -e "${CYAN}- /health: For general health checks${RESET}"
+echo -e "${CYAN}- /: Will serve the application for browsers but 'OK' for health checkers${RESET}"
+echo -e "${CYAN}- /app: Always serves the full application${RESET}"
+echo -e "\n${BOLD}${GREEN}You can now deploy your application using the Replit Deploy button.${RESET}\n"
