@@ -17,6 +17,7 @@ export function ChatBubble({
   isGeneratingDraft = false 
 }: ChatBubbleProps) {
   const isBot = message.type === 'bot';
+  const isAIGenerated = message.isAIGenerated;
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
   // Define keywords that indicate a non-draftable message
@@ -61,8 +62,13 @@ export function ChatBubble({
         <div className="w-full">
           <div className={cn(
             "rounded-lg p-2 sm:p-3 inline-block w-full",
-            isBot ? "bg-gray-100" : "bg-primary text-white"
+            isBot ? "bg-gray-100" : isAIGenerated ? "bg-amber-50 text-gray-800" : "bg-primary text-white"
           )}>
+            {isAIGenerated && (
+              <div className="mb-1 flex items-center">
+                <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full inline-block">AI Example</span>
+              </div>
+            )}
             <p className="text-sm sm:text-base break-words">{message.content}</p>
             
             {showDraftButton && (

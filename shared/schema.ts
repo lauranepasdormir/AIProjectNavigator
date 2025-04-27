@@ -47,4 +47,5 @@ export interface ChatMessage {
   type: 'bot' | 'user';
   content: string;
   timestamp: Date;
+  isAIGenerated?: boolean;
 }

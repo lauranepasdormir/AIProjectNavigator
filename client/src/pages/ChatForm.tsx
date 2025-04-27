@@ -69,7 +69,8 @@ export default function ChatForm() {
       return response.json();
     },
     onSuccess: (data) => {
-      addUserMessage(data.suggestion);
+      // Add user message with isAIGenerated flag set to true
+      addUserMessage(data.suggestion, true);
       setGeneratingDraftForQuestion(null);
       
       toast({
@@ -177,12 +178,13 @@ export default function ChatForm() {
   };
   
   // Add a user message to the chat
-  const addUserMessage = (content: string) => {
+  const addUserMessage = (content: string, isAIGenerated: boolean = false) => {
     const newMessage: ChatMessage = {
       id: uuidv4(),
       type: 'user',
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
+      isAIGenerated
     };
     
     setMessages(prev => [...prev, newMessage]);
