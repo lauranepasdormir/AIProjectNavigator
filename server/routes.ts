@@ -6,6 +6,7 @@ import { insertProjectSubmissionSchema } from "@shared/schema";
 import { generateDraftResponse } from "./openai";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
+import { setupNoAuthProjectSubmissions } from "./disable-auth-for-submissions";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Add CORS headers for API requests
@@ -34,6 +35,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup authentication
   const { isAuthenticated } = setupAuth(app);
+  
+  // Setup direct project submissions endpoint without authentication
+  setupNoAuthProjectSubmissions(app, pool);
   
   // Project Submission Routes
   // Admin route - temporarily bypass authentication for debugging

@@ -2,12 +2,14 @@
  * This special file can be used in production to bypass authentication for project submissions
  * Import it in server/routes.ts to fix the project submissions not appearing in admin panel
  */
+import type { Express } from "express";
+import { Pool } from "@neondatabase/serverless";
 
-export function setupNoAuthProjectSubmissions(app, pool) {
+export function setupNoAuthProjectSubmissions(app: Express, pool: Pool) {
   console.log('IMPORTANT: Setting up project submissions endpoint with auth bypass');
   
   // Direct SQL query endpoint that does not require authentication
-  app.get('/api/project-submissions-direct', async (req, res) => {
+  app.get('/api/project-submissions-direct', async (req: any, res: any) => {
     console.log('Direct project submissions endpoint called');
     try {
       // Using direct SQL query through the pool
