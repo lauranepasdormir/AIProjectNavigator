@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryKey: ["/api/me"],
     queryFn: async () => {
       try {
-        const res = await apiRequest("GET", "/api/me");
+        const res = await apiRequest("/api/me");
         if (res.status === 401) {
           return null; // Not authenticated
         }
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiRequest("POST", "/api/login", { email, password });
+      const response = await apiRequest("/api/login", "POST", { email, password });
       
       if (response.ok) {
         const userData = await response.json();
@@ -98,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Logout function
   const logout = async () => {
     try {
-      const response = await apiRequest("POST", "/api/logout");
+      const response = await apiRequest("/api/logout", "POST");
       
       if (response.ok) {
         setUser(null);
