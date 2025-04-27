@@ -56,12 +56,20 @@ node scripts/ensure-server-public.js
 echo -e "\n${YELLOW}Step 4: Fixing admin panel and database for production...${RESET}"
 node scripts/fix-production-admin.js
 
-# Step 5: Verify deployment readiness
-echo -e "\n${YELLOW}Step 5: Verifying deployment readiness...${RESET}"
+# Step 5: Fix authentication and session management
+echo -e "\n${YELLOW}Step 5: Fixing authentication and session management...${RESET}"
+node scripts/fix-production-auth.js
+
+# Step 6: Fix API routes for better error handling
+echo -e "\n${YELLOW}Step 6: Fixing API routes for better error handling...${RESET}"
+node scripts/fix-api-routes.js
+
+# Step 6: Verify deployment readiness
+echo -e "\n${YELLOW}Step 6: Verifying deployment readiness...${RESET}"
 node scripts/verify-deployment-readiness.js
 
-# Step 6: Final verification of health check endpoints
-echo -e "\n${YELLOW}Step 6: Verifying health check endpoints...${RESET}"
+# Step 7: Final verification of health check endpoints
+echo -e "\n${YELLOW}Step 7: Verifying health check endpoints...${RESET}"
 
 # Check the health endpoint
 HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5000/health")
