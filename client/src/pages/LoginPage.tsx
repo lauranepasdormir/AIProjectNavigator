@@ -15,8 +15,8 @@ import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("admin");
-  const [password, setPassword] = useState("admin");
+  const [email, setEmail] = useState("admin@digitalvillage.com.au");
+  const [password, setPassword] = useState("password123");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
@@ -61,11 +61,11 @@ export default function LoginPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">Username</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type="text"
-                placeholder="admin"
+                type="email"
+                placeholder="admin@digitalvillage.com.au"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
