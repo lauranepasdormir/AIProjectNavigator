@@ -17,10 +17,8 @@ app.get('/', (_req, res) => {
   res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
 });
 
-// Serve static files from the public directory
-app.use('/assets', express.static(path.join(process.cwd(), 'public/assets')));
-// Serve static files from the client/public directory
-app.use(express.static(path.join(process.cwd(), 'client/public')));
+// Serve static files from dist/public directory
+app.use(express.static(path.join(process.cwd(), 'dist/public')));
 
 app.use((req, res, next) => {
   const start = Date.now();
