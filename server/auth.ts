@@ -180,10 +180,33 @@ export function setupAuth(app: Express) {
     console.log(`- Session data:`, req.session);
     console.log(`- User data:`, req.user || 'No user');
     
+    // Always allow OPTIONS requests to pass through for CORS preflight requests
+    if (req.method === 'OPTIONS') {
+      console.log('OPTIONS request detected, allowing through for CORS');
+      return next();
+    }
+    
     if (req.isAuthenticated()) {
       console.log('User is authenticated, proceeding...');
       return next();
     }
+    
+    // Special case for paths where authentication is needed but we should return nicely formatted errors
+    if (req.path.startsWith('/api/')) {
+      console.log('User is NOT authenticated on API endpoint, returning 401');
+      
+      // Set appropriate headers to prevent caching of unauthorized responses
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+      
+      return res.status(401).json({ 
+        error: 'Not authenticated',
+        message: 'Please log in to access this resource',
+        path: req.path
+      });
+    }
+    
     console.log('User is NOT authenticated, returning 401');
     res.status(401).json({ error: 'Unauthorized' });
   }
@@ -196,12 +219,72 @@ export function setupAuth(app: Express) {
       username: req.body?.username,
       hasPassword: !!req.body?.password
     });
+    console.log(`Current session ID before login: ${req.sessionID}`);
+    
+    // Set cache headers immediately
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     
     if (!req.body || !req.body.username || !req.body.password) {
       console.error("Missing credentials in login request");
       return res.status(401).json({ error: "Missing credentials" });
     }
     
+    // Special handling for our hardcoded admin account
+    // This bypasses Passport for the admin user to ensure reliability
+    if (req.body.username === ADMIN_USERNAME && req.body.password === ADMIN_PASSWORD) {
+      console.log("Admin credentials detected, using direct login path");
+      
+      // Get the admin user from storage
+      storage.getUserByUsername(ADMIN_USERNAME)
+        .then(adminUser => {
+          if (!adminUser) {
+            console.log("Admin user not found in database, creating it first");
+            return hashPassword(ADMIN_PASSWORD)
+              .then(hashedPassword => {
+                return storage.createUser({
+                  username: ADMIN_USERNAME,
+                  password: hashedPassword
+                });
+              });
+          }
+          return adminUser;
+        })
+        .then(adminUser => {
+          // Manually log in the user by calling req.login
+          req.login(adminUser, (err) => {
+            if (err) {
+              console.error("Admin direct login error:", err);
+              return next(err);
+            }
+            
+            console.log(`Admin user successfully logged in via direct path`);
+            console.log(`- Session ID after admin login: ${req.sessionID}`);
+            console.log(`- Session after admin login:`, req.session);
+            
+            // Validate that authentication worked 
+            console.log(`- Is authenticated after login: ${req.isAuthenticated()}`);
+            
+            // Return successful response
+            return res.json({ 
+              id: adminUser.id,
+              username: adminUser.username,
+              message: "Login successful (direct path)",
+              sessionId: req.sessionID,
+              authenticated: true
+            });
+          });
+        })
+        .catch(error => {
+          console.error("Error in direct admin login:", error);
+          return res.status(500).json({ error: "Login error", message: error.message });
+        });
+      
+      return; // End execution here for direct path
+    }
+    
+    // Regular path using Passport for non-admin users
     passport.authenticate("local", (err: Error, user: Express.User, info: { message: string }) => {
       if (err) {
         console.error("Login authentication error:", err);
@@ -222,10 +305,7 @@ export function setupAuth(app: Express) {
         console.log(`User ${user.username} (ID: ${user.id}) successfully logged in`);
         console.log(`- Session ID after login: ${req.sessionID}`);
         console.log(`- Session after login:`, req.session);
-        
-        // Set cookie headers to ensure session persistence
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
+        console.log(`- Is authenticated after login: ${req.isAuthenticated()}`);
         
         return res.json({ 
           id: user.id,
