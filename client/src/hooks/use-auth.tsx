@@ -68,24 +68,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiRequest("/api/login", "POST", { email, password });
+      // Fix: Server expects 'username' not 'email'
+      console.log("Login attempt with:", { username: email, password: '***' });
+      const response = await apiRequest("/api/login", "POST", { 
+        username: email, // Note: Send as username
+        password 
+      });
       
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        setIsAuthenticated(true);
-        queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-        
-        toast({
-          title: "Login successful",
-          description: "You are now logged in.",
-          variant: "default",
-        });
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Login failed");
-      }
+      // NOTE: No need to check response.ok since apiRequest already throws on non-OK
+      const userData = await response.json();
+      console.log("Login successful, user data:", userData);
+      setUser(userData);
+      setIsAuthenticated(true);
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      
+      toast({
+        title: "Login successful",
+        description: "You are now logged in.",
+        variant: "default",
+      });
     } catch (error) {
+      console.error("Login error:", error);
       toast({
         title: "Login failed",
         description: error instanceof Error ? error.message : "An error occurred",

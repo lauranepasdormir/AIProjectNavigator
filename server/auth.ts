@@ -179,17 +179,36 @@ export function setupAuth(app: Express) {
 
   // Auth routes
   app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+    console.log("Login request received:", { 
+      body: req.body,
+      bodyType: typeof req.body,
+      username: req.body?.username,
+      hasPassword: !!req.body?.password
+    });
+    
+    if (!req.body || !req.body.username || !req.body.password) {
+      console.error("Missing credentials in login request");
+      return res.status(401).json({ error: "Missing credentials" });
+    }
+    
     passport.authenticate("local", (err: Error, user: Express.User, info: { message: string }) => {
       if (err) {
+        console.error("Login authentication error:", err);
         return next(err);
       }
+      
       if (!user) {
+        console.error("Login failed - invalid credentials:", info.message);
         return res.status(401).json({ error: info.message || "Invalid credentials" });
       }
+      
       req.login(user, (err) => {
         if (err) {
+          console.error("Session login error:", err);
           return next(err);
         }
+        
+        console.log(`User ${user.username} (ID: ${user.id}) successfully logged in`);
         return res.json({ 
           id: user.id,
           username: user.username,
