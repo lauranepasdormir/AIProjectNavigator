@@ -127,27 +127,55 @@ export class DatabaseStorage implements IStorage {
   
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    try {
+      const result = await db.select().from(users).where(eq(users.id, id));
+      if (result.length === 0) return undefined;
+      return result[0];
+    } catch (error) {
+      console.error("Error in getUser:", error);
+      throw error;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    try {
+      const result = await db.select().from(users).where(eq(users.username, username));
+      if (result.length === 0) return undefined;
+      return result[0];
+    } catch (error) {
+      console.error("Error in getUserByUsername:", error);
+      throw error;
+    }
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db
-      .insert(users)
-      .values(insertUser)
-      .returning();
-    return user;
+    try {
+      const result = await db
+        .insert(users)
+        .values(insertUser)
+        .returning();
+      
+      if (result.length === 0) {
+        throw new Error("Failed to create user: No user returned");
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error in createUser:", error);
+      throw error;
+    }
   }
   
   // Project submission methods
   async getProjectSubmission(id: number): Promise<ProjectSubmission | undefined> {
-    const [submission] = await db.select().from(projectSubmissions).where(eq(projectSubmissions.id, id));
-    return submission || undefined;
+    try {
+      const result = await db.select().from(projectSubmissions).where(eq(projectSubmissions.id, id));
+      if (result.length === 0) return undefined;
+      return result[0];
+    } catch (error) {
+      console.error("Error in getProjectSubmission:", error);
+      throw error;
+    }
   }
   
   async getAllProjectSubmissions(): Promise<ProjectSubmission[]> {
@@ -184,17 +212,27 @@ export class DatabaseStorage implements IStorage {
   }
   
   async createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission> {
-    // Ensure username is set with a default if not provided
-    const submissionWithDefaults = {
-      ...submission,
-      username: submission.username ?? "Anonymous User"
-    };
-    
-    const [projectSubmission] = await db
-      .insert(projectSubmissions)
-      .values(submissionWithDefaults)
-      .returning();
-    return projectSubmission;
+    try {
+      // Ensure username is set with a default if not provided
+      const submissionWithDefaults = {
+        ...submission,
+        username: submission.username ?? "Anonymous User"
+      };
+      
+      const result = await db
+        .insert(projectSubmissions)
+        .values(submissionWithDefaults)
+        .returning();
+        
+      if (result.length === 0) {
+        throw new Error("Failed to create project submission: No submission returned");
+      }
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error in createProjectSubmission:", error);
+      throw error;
+    }
   }
   
   async deleteProjectSubmission(id: number): Promise<boolean> {
