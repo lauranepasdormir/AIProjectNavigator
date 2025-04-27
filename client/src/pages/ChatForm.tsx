@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { ToyBrick, Database, Download, ExternalLink, Clock } from "lucide-react";
+import { ToyBrick, Database, Download, Link2, Clock } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
 import { questions } from "@/lib/questions";
 import { generateMarkdown, formatMarkdownToHtml, downloadMarkdown } from "@/lib/markdown";
@@ -557,7 +557,7 @@ export default function ChatForm() {
                     onClick={() => handleProfileChoice('yes')}
                     className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg flex items-center gap-2"
                   >
-                    <ExternalLink className="h-5 w-5" />
+                    <Link2 className="h-5 w-5" />
                     Yes, take me there!
                   </Button>
                   <Button
