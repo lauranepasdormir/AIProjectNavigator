@@ -4,6 +4,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import fs from "fs";
 import { performStartupChecks } from "./startup-checks";
+import { healthCheckMiddleware } from "./health-checks";
 
 const app = express();
 app.use(express.json());
@@ -12,35 +13,12 @@ app.use(express.urlencoded({ extended: false }));
 // Check if we're in development mode
 const isDevelopment = app.get("env") === "development";
 
-// Add health check endpoint that always responds immediately
-app.get('/health', (_req, res) => {
-  res.status(200).send('OK');
-});
+// Add health check middleware to handle all health check endpoints
+// This must be added early in the middleware chain to catch health checks before other middleware
+app.use(healthCheckMiddleware);
 
-// Add a special route for Replit deployment health checks
-// This is used by Replit's internal load balancer to check if the app is healthy
-app.get('/replit-deploy-health', (_req, res) => {
-  res.status(200).send('OK');
-});
-
-// Root path health check always has priority in production
-// In development, the health check path is at /health
+// Root path
 app.get('/', (req, res, next) => {
-  // For non-browser requests or explicit health checks, return "OK"
-  // This works in both development and production
-  const isHealthCheck = 
-    req.headers.accept === 'application/json' || 
-    !req.headers.accept || 
-    !req.headers.accept.includes('text/html') || 
-    req.headers['user-agent']?.includes('kube-probe') ||
-    req.headers['user-agent']?.includes('deployment-check') ||
-    req.query.healthCheck === 'true';
-    
-  if (isHealthCheck) {
-    // Return an immediate OK for health checks
-    return res.status(200).send('OK');
-  }
-  
   // For production browser requests, serve the static HTML
   if (process.env.NODE_ENV === 'production') {
     const publicDir = path.resolve(process.cwd(), 'server/public');
