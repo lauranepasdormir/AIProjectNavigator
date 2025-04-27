@@ -4,10 +4,15 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
 import { generateDraftResponse } from "./openai";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication
+  const { isAuthenticated } = setupAuth(app);
+  
   // Project Submission Routes
-  app.get('/api/project-submissions', async (req: Request, res: Response) => {
+  // Admin route - requires authentication
+  app.get('/api/project-submissions', isAuthenticated, async (req: Request, res: Response) => {
     try {
       const submissions = await storage.getAllProjectSubmissions();
       res.json(submissions);
@@ -17,6 +22,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get a specific project - requires authentication for private/internal projects
   app.get('/api/project-submissions/:id', async (req: Request, res: Response) => {
     try {
       const id = parseInt(req.params.id);
@@ -29,10 +35,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: 'Project submission not found' });
       }
 
+      // Only allow access to public projects if not authenticated
+      if (!req.isAuthenticated() && submission.visibility !== 'public') {
+        return res.status(401).json({ error: 'Authentication required to view this project' });
+      }
+
       res.json(submission);
     } catch (error) {
       console.error('Error fetching project submission:', error);
       res.status(500).json({ error: 'Failed to fetch project submission' });
+    }
+  });
+  
+  // Route for public projects
+  app.get('/api/public-projects', async (req: Request, res: Response) => {
+    try {
+      const allSubmissions = await storage.getAllProjectSubmissions();
+      const publicSubmissions = allSubmissions.filter(submission => submission.visibility === 'public');
+      res.json(publicSubmissions);
+    } catch (error) {
+      console.error('Error fetching public projects:', error);
+      res.status(500).json({ error: 'Failed to fetch public projects' });
     }
   });
 
