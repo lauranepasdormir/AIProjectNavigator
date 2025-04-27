@@ -16,34 +16,50 @@ app.get('/health', (_req, res) => {
   res.status(200).send('OK');
 });
 
-// In production, handle root path specially
-if (!isDevelopment) {
-  // First, create a route for serving the application at /app
-  app.get('/app', (_req, res) => {
-    // Serve the full application at /app
+// Add a special route for Replit deployment health checks
+// This is used by Replit's internal load balancer to check if the app is healthy
+app.get('/replit-deploy-health', (_req, res) => {
+  res.status(200).send('OK');
+});
+
+// Root path health check always has priority in production
+// In development, the health check path is at /health
+app.get('/', (req, res, next) => {
+  // In production, always start with a health check first
+  // This ensures Replit deployment health checks pass immediately
+  if (process.env.NODE_ENV === 'production') {
+    // For non-browser requests or explicit health checks, return "OK"
+    const isHealthCheck = 
+      !req.headers.accept || 
+      !req.headers.accept.includes('text/html') || 
+      req.headers['user-agent']?.includes('kube-probe') ||
+      req.query.healthCheck === 'true';
+      
+    if (isHealthCheck) {
+      // Return an immediate OK for health checks
+      return res.status(200).send('OK');
+    }
+    
+    // For browser requests, serve the static HTML
+    const publicDir = path.resolve(process.cwd(), 'server/public');
+    return res.sendFile(path.join(publicDir, 'index.html'));
+  }
+  
+  // In development, let Vite handle all requests
+  next();
+});
+
+// Always have a dedicated /app route
+app.get('/app', (req, res, next) => {
+  if (!isDevelopment) {
+    // In production, serve the app HTML
     const publicDir = path.resolve(process.cwd(), 'server/public');
     res.sendFile(path.join(publicDir, 'index.html'));
-  });
-
-  // Then create a root handler to serve either health check or the app
-  // based on the "Accept" header
-  app.get('/', (req, res) => {
-    const acceptHeader = req.headers.accept || '';
-    
-    // If the client accepts HTML, serve the full app (probably a browser)
-    if (acceptHeader.includes('text/html')) {
-      const publicDir = path.resolve(process.cwd(), 'server/public');
-      res.sendFile(path.join(publicDir, 'index.html'));
-    } else {
-      // Otherwise, send a simple OK for health checks
-      res.status(200).send('OK');
-    }
-  });
-} else {
-  // In development, let Vite handle these routes
-  app.get('/', (_req, res, next) => next());
-  app.get('/app', (_req, res, next) => next());
-}
+  } else {
+    // In development, let Vite handle it
+    next();
+  }
+});
 
 app.use((req, res, next) => {
   const start = Date.now();
