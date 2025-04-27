@@ -52,12 +52,16 @@ node scripts/build-for-production.js
 echo -e "\n${YELLOW}Step 3: Ensuring server/public directory is properly configured...${RESET}"
 node scripts/ensure-server-public.js
 
-# Step 4: Verify deployment readiness
-echo -e "\n${YELLOW}Step 4: Verifying deployment readiness...${RESET}"
+# Step 4: Fix admin panel and database issues
+echo -e "\n${YELLOW}Step 4: Fixing admin panel and database for production...${RESET}"
+node scripts/fix-admin-panel.js
+
+# Step 5: Verify deployment readiness
+echo -e "\n${YELLOW}Step 5: Verifying deployment readiness...${RESET}"
 node scripts/verify-deployment-readiness.js
 
-# Step 5: Final verification of health check endpoints
-echo -e "\n${YELLOW}Step 5: Verifying health check endpoints...${RESET}"
+# Step 6: Final verification of health check endpoints
+echo -e "\n${YELLOW}Step 6: Verifying health check endpoints...${RESET}"
 
 # Check the health endpoint
 HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "http://localhost:5000/health")

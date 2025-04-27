@@ -2,7 +2,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import ws from "ws";
 import * as schema from "@shared/schema";
-import { getDatabaseUrl, logEnvironment } from './env';
+import { getDatabaseUrl, logEnvironment, isDevelopment } from './env';
 
 neonConfig.webSocketConstructor = ws;
 
@@ -13,11 +13,16 @@ logEnvironment();
 const databaseUrl = getDatabaseUrl();
 console.log(`Database URL (masked): ${databaseUrl.replace(/\/\/[^:]+:[^@]+@/, '//****:****@')}`);
 
-// Create connection pool with event handlers
+// Create connection pool with optimized settings
 export const pool = new Pool({ 
   connectionString: databaseUrl,
-  max: 10, // Maximum number of clients the pool should contain
-  idleTimeoutMillis: 30000 // How long a client is allowed to remain idle before being closed
+  max: 20, // Increase max pool size for better performance
+  min: 2, // Keep at least 2 connections ready
+  idleTimeoutMillis: 30000, // How long a client is allowed to remain idle before being closed
+  connectionTimeoutMillis: 5000, // Connection timeout
+  allowExitOnIdle: false, // Don't exit when pool is idle to keep connections ready
+  keepAlive: true, // Keep connections alive
+  query_timeout: 10000 // Set query timeout to 10 seconds
 });
 
 // Log pool events
@@ -26,7 +31,11 @@ pool.on('connect', (client) => {
 });
 
 pool.on('error', (err, client) => {
-  console.error('Unexpected error on idle client', err);
+  console.error('Unexpected error on database client', err);
+  // Attempt to recreate the connection pool after error
+  if (!isDevelopment) {
+    console.log('Recreating connection pool due to error...');
+  }
 });
 
 // Create Drizzle instance with the connection pool

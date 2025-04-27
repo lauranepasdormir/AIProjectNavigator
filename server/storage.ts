@@ -151,18 +151,36 @@ export class DatabaseStorage implements IStorage {
   }
   
   async getAllProjectSubmissions(): Promise<ProjectSubmission[]> {
-    try {
-      console.log('DatabaseStorage: Attempting to fetch all project submissions from database...');
-      const results = await db.select().from(projectSubmissions);
-      console.log(`DatabaseStorage: Successfully retrieved ${results.length} project submissions`);
-      return results;
-    } catch (error) {
-      console.error('DatabaseStorage: Error fetching all project submissions:', error);
-      console.error('DatabaseStorage: Error details:', error instanceof Error ? error.message : 'Unknown error');
-      console.error('DatabaseStorage: Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-      // Re-throw to be handled by the calling code
-      throw error;
+    let retries = 0;
+    const maxRetries = 3;
+    
+    while (retries < maxRetries) {
+      try {
+        console.log(`DatabaseStorage: Attempting to fetch all project submissions from database (attempt ${retries + 1}/${maxRetries})...`);
+        const results = await db.select().from(projectSubmissions);
+        console.log(`DatabaseStorage: Successfully retrieved ${results.length} project submissions`);
+        return results;
+      } catch (error) {
+        retries++;
+        console.error(`DatabaseStorage: Error fetching all project submissions (attempt ${retries}/${maxRetries}):`, error);
+        console.error('DatabaseStorage: Error details:', error instanceof Error ? error.message : 'Unknown error');
+        
+        if (retries >= maxRetries) {
+          console.error('DatabaseStorage: Maximum retries reached, throwing error');
+          // Re-throw to be handled by the calling code
+          throw error;
+        } else {
+          // Add exponential backoff
+          const delay = Math.pow(2, retries) * 500; // 1s, 2s, 4s
+          console.log(`DatabaseStorage: Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
     }
+    
+    // This line should never be reached due to the throw in the catch block above
+    // but TypeScript requires a return statement
+    return [];
   }
   
   async createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission> {
