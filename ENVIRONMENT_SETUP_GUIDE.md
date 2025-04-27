@@ -1,26 +1,43 @@
-# Environment Setup Guide
+# Database Environment Setup Guide
 
-This guide explains how to configure and switch between development and production environments for the Project Showcase Platform.
+This guide explains how to set up and manage separate database environments for development and production in this application.
 
 ## Overview
 
-The application supports two distinct environments:
+The application supports multiple database environments:
 
-1. **Development Environment** - Uses `DEV_DATABASE_URL` for database connections
-2. **Production Environment** - Uses `PROD_DATABASE_URL` for database connections
+1. **Development Environment**: Used for local development and testing
+2. **Production Environment**: Used for the live application
 
-Each environment can have its own database, allowing you to develop and test without affecting production data.
+Each environment can have its own database connection, allowing you to work with different databases depending on your needs.
 
-## Configuration Files
+## Environment Configuration
 
-- `.env` - Main environment configuration file
-- `.prod/.env.prod.template` - Template for production environment
+Environment-specific configuration is stored in `.env` files:
 
-## Using Environment Scripts
+- `.env`: The active environment configuration
+- `.env.dev.template`: Template for development environment
+- `.env.prod.template`: Template for production environment
 
-We've created several utility scripts to help manage environments:
+## Setting Up Environments
 
-### Switch Between Environments
+### Initial Setup
+
+First, decide which environment you want to use (development or production) and create the appropriate `.env` file:
+
+```bash
+# For development environment
+node scripts/set-env.js dev
+
+# For production environment
+node scripts/set-env.js prod
+```
+
+This will create an `.env` file with the appropriate environment variables.
+
+### Switching Environments
+
+To switch between environments, use the `switch-env.js` script:
 
 ```bash
 # Switch to development environment
@@ -30,15 +47,23 @@ node scripts/switch-env.js dev
 node scripts/switch-env.js prod
 ```
 
-### Set Up Environment with Current Database URL
+To switch environments and run database migrations in a single step:
 
 ```bash
-# Set up development environment with current DATABASE_URL
-node scripts/set-env.js dev
+# Switch to development environment and run migrations
+node scripts/switch-and-migrate.js dev
 
-# Set up production environment with current DATABASE_URL
-node scripts/set-env.js prod
+# Switch to production environment and run migrations
+node scripts/switch-and-migrate.js prod
 ```
+
+## Database URLs
+
+The application uses different environment variables for database connections:
+
+- `DEV_DATABASE_URL`: Used in development mode
+- `PROD_DATABASE_URL`: Used in production mode
+- `DATABASE_URL`: Used as a fallback when environment-specific URLs are not available
 
 ## Recommended Package.json Scripts
 
@@ -54,7 +79,10 @@ For easier management, consider adding these scripts to your package.json:
   "env:dev": "node scripts/switch-env.js dev",
   "env:prod": "node scripts/switch-env.js prod",
   "setup:dev": "node scripts/set-env.js dev",
-  "setup:prod": "node scripts/set-env.js prod"
+  "setup:prod": "node scripts/set-env.js prod",
+  "env:dev:migrate": "node scripts/switch-and-migrate.js dev",
+  "env:prod:migrate": "node scripts/switch-and-migrate.js prod",
+  "db:test": "NODE_ENV=development node scripts/test-db-connection.js"
 }
 ```
 
@@ -85,3 +113,13 @@ When deploying to production:
 
 - Remember to run `npm run db:push` after changing environments to ensure the database schema is up to date
 - The database URL can include connection parameters like SSL requirements that may differ between development and production
+- Use the `scripts/test-db-connection.js` script to verify your database connection
+
+## Troubleshooting
+
+If you encounter database connection issues:
+
+1. Verify your database URL is correct
+2. Check that the database server is running and accessible
+3. Ensure your database user has the necessary permissions
+4. Run `NODE_ENV=development node scripts/test-db-connection.js` to test the connection

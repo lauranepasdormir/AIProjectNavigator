@@ -36,6 +36,16 @@ node scripts/switch-env.js dev
 node scripts/switch-env.js prod
 ```
 
+You can also switch environments and run migrations in a single step:
+
+```bash
+# Switch to development environment and run migrations
+node scripts/switch-and-migrate.js dev
+
+# Switch to production environment and run migrations
+node scripts/switch-and-migrate.js prod
+```
+
 ### Setting Up a New Environment
 
 If you need to set up a new environment or update database connections, use the `set-env.js` script:
