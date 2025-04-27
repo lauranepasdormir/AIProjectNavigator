@@ -8,9 +8,18 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add health check endpoints
+// Add health check endpoints - these should respond immediately without any processing
+// Important: Do not render the entire application or do database queries here
 app.get('/', (_req, res) => {
+  // This is the root endpoint that will be used for health checks by Replit deployments
+  // Just return a simple 200 OK response immediately
   res.status(200).send('OK');
+});
+
+// Create an app route where we'll serve the actual frontend application
+app.get('/app', (_req, res, next) => {
+  // This will be handled by either Vite in development or serveStatic in production
+  next();
 });
 
 app.get('/health', (_req, res) => {
