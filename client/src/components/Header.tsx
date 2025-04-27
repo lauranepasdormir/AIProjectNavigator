@@ -17,24 +17,13 @@ export function Header() {
   return (
     <header className="border-b bg-white p-3 sticky top-0 z-10 shadow-sm">
       <div className="container mx-auto flex justify-between items-center">
-        <div className="flex items-center space-x-2">
+        <Link href="/" className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity">
           <ToyBrick className="h-5 w-5 text-primary" />
           <span className="text-lg font-bold sm:text-xl">AI Project Showcase</span>
-        </div>
+        </Link>
 
         {/* Desktop Navigation */}
         <nav className="hidden sm:flex space-x-2">
-          <Button
-            variant={location === "/" ? "default" : "ghost"}
-            size="sm"
-            asChild
-          >
-            <Link href="/">
-              <User className="h-4 w-4 mr-2" />
-              Submit Project
-            </Link>
-          </Button>
-
           {isAuthenticated && (
             <Button
               variant="outline"
@@ -47,36 +36,25 @@ export function Header() {
           )}
         </nav>
         
-        {/* Mobile Navigation Button */}
-        <div className="sm:hidden">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => setMenuOpen(!menuOpen)}
-            className="p-1"
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-        </div>
+        {/* Mobile Navigation Button - Only show if authenticated */}
+        {isAuthenticated && (
+          <div className="sm:hidden">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="p-1"
+            >
+              <Menu className="h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
       
       {/* Mobile Navigation Menu */}
       {menuOpen && (
         <div className="container mx-auto mt-2 sm:hidden">
           <div className="flex flex-col space-y-2 bg-white rounded-md shadow-md p-2">
-            <Button
-              variant={location === "/" ? "default" : "ghost"}
-              size="sm"
-              asChild
-              className="justify-start"
-              onClick={() => setMenuOpen(false)}
-            >
-              <Link href="/">
-                <User className="h-4 w-4 mr-2" />
-                Submit Project
-              </Link>
-            </Button>
-
             {isAuthenticated && (
               <Button
                 variant="outline"
