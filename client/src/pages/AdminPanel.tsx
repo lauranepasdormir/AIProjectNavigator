@@ -105,8 +105,21 @@ export default function AdminPanel() {
   // Delete mutation
   const deleteMutation = useMutation({
     mutationFn: async (submissionId: number) => {
-      const response = await apiRequest(`/api/project-submissions/${submissionId}`, 'DELETE');
-      return response;
+      const response = await fetch(`/api/project-submissions/${submissionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+        credentials: 'include'
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+      }
+      
+      return response.json();
     },
     onSuccess: () => {
       toast({
