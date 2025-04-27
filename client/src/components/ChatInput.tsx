@@ -160,9 +160,9 @@ export function ChatInput({
           
           <Button
             onClick={onDownload}
-            className="bg-secondary hover:bg-secondary/90 gap-2 px-4 py-3 text-base font-medium rounded-lg flex-1 sm:flex-none max-w-xs"
+            className="bg-secondary hover:bg-secondary/90 gap-2 px-4 py-3 text-blue-600 text-base font-medium rounded-lg flex-1 sm:flex-none max-w-xs"
           >
-            <Download className="h-5 w-5 sm:h-6 sm:w-6" /> Download
+            <Download className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" /> Download
           </Button>
         </div>
       </div>

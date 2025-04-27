@@ -505,9 +505,9 @@ export default function ChatForm() {
                   </Button>
                   <Button
                     onClick={handleDownload}
-                    className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-base font-medium rounded-lg flex items-center gap-2"
+                    className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-blue-600 text-base font-medium rounded-lg flex items-center gap-2"
                   >
-                    <Download className="h-5 w-5" />
+                    <Download className="h-5 w-5 text-blue-600" />
                     Download Markdown
                   </Button>
                 </div>
