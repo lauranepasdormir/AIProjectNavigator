@@ -8,6 +8,7 @@ import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatNavigation } from "@/components/ChatNavigation";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
+import { VisibilitySelector } from "@/components/VisibilitySelector";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +23,8 @@ export default function ChatForm() {
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
   const [isSaved, setIsSaved] = useState(false);
   const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
-  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions'>('welcome');
+  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility'>('welcome');
+  const [selectedVisibility, setSelectedVisibility] = useState<string>("private"); // Default to private
   
   // Toast notifications
   const { toast } = useToast();
@@ -90,8 +92,9 @@ export default function ChatForm() {
   // Refs
   const chatAreaRef = useRef<HTMLDivElement>(null);
   
-  // Add initial bot message when component mounts
+  // Load saved answers from localStorage on mount and set initial message
   useEffect(() => {
+    // Add initial welcome message if none exists
     if (messages.length === 0) {
       const welcomeMessage: ChatMessage = {
         id: uuidv4(),
@@ -101,6 +104,22 @@ export default function ChatForm() {
       };
       
       setMessages([welcomeMessage]);
+    }
+    
+    // Load saved answers from localStorage if available
+    try {
+      const savedAnswers = localStorage.getItem('projectAnswers');
+      if (savedAnswers) {
+        const parsedAnswers = JSON.parse(savedAnswers);
+        setAnswers(parsedAnswers);
+        
+        // If visibility was saved, restore it
+        if (parsedAnswers.visibility) {
+          setSelectedVisibility(parsedAnswers.visibility);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading answers from localStorage:', error);
     }
   }, [messages.length]);
   
@@ -127,8 +146,8 @@ export default function ChatForm() {
     }
   }, [messages]);
   
-  // Check if all questions have been answered
-  const isComplete = onboardingStage === 'questions' && currentQuestion >= questions.length;
+  // Check if all questions have been answered and visibility is selected
+  const isComplete = (onboardingStage === 'questions' && currentQuestion >= questions.length) || onboardingStage === 'visibility';
   
   // Add a bot message to the chat
   const addBotMessage = (content: string) => {
@@ -177,6 +196,13 @@ export default function ChatForm() {
       updatedAnswers[questions[currentQuestion].id] = value;
       setAnswers(updatedAnswers);
       
+      // Save answers to localStorage
+      try {
+        localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
+      
       // Move to next question
       setCurrentQuestion(prev => prev + 1);
       
@@ -210,6 +236,13 @@ export default function ChatForm() {
       const updatedAnswers = { ...answers };
       updatedAnswers[questions[currentQuestion].id] = '';
       setAnswers(updatedAnswers);
+      
+      // Save answers to localStorage
+      try {
+        localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
       
       setCurrentQuestion(prev => prev + 1);
       
@@ -248,6 +281,13 @@ export default function ChatForm() {
     updatedAnswers[id] = value;
     setAnswers(updatedAnswers);
     
+    // Save to localStorage
+    try {
+      localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+    
     // Update the markdown and HTML content to reflect the changes
     toast({
       title: "Answer Updated",
@@ -263,7 +303,24 @@ export default function ChatForm() {
   
   // Save project to database
   const handleSaveToDatabase = () => {
-    submitProjectMutation.mutate(answers);
+    // Make sure visibility is included in the submission
+    const answersWithVisibility = {
+      ...answers,
+      visibility: selectedVisibility
+    };
+    
+    // Save to localStorage
+    try {
+      localStorage.setItem('projectAnswers', JSON.stringify(answersWithVisibility));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+    
+    // Save to database
+    submitProjectMutation.mutate(answersWithVisibility);
+    
+    // Update local state
+    setAnswers(answersWithVisibility);
   };
   
   // Handle draft generation request
@@ -330,6 +387,43 @@ export default function ChatForm() {
             />
           )}
           
+          {/* Visibility Selector - Only show in visibility stage */}
+          {!isPreviewMode && onboardingStage === 'visibility' && (
+            <div className="p-3 sm:p-4 md:p-6">
+              <VisibilitySelector
+                selectedVisibility={selectedVisibility}
+                onSelectVisibility={(visibility) => {
+                  setSelectedVisibility(visibility);
+                  
+                  // Update answers with visibility
+                  const updatedAnswers = { ...answers, visibility };
+                  setAnswers(updatedAnswers);
+                  
+                  // Store answers in localStorage
+                  try {
+                    localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+                  } catch (error) {
+                    console.error('Error saving to localStorage:', error);
+                  }
+                  
+                  toast({
+                    title: "Visibility set",
+                    description: `Your project visibility has been set to ${visibility}`,
+                    variant: "default",
+                  });
+                }}
+              />
+              <div className="mt-6 flex justify-center">
+                <Button 
+                  onClick={handleShowPreview}
+                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg"
+                >
+                  Preview Project
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Input Area */}
           <div className="mt-auto">
             {onboardingStage === 'welcome' && (
@@ -363,7 +457,15 @@ export default function ChatForm() {
                 placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
                 onSubmit={handleSubmit}
                 isComplete={isComplete}
-                onShowPreview={handleShowPreview}
+                onShowPreview={
+                  currentQuestion >= questions.length
+                    ? () => {
+                        // When all questions are answered, move to visibility selection
+                        setOnboardingStage('visibility');
+                        addBotMessage("Please select your project visibility:");
+                      }
+                    : undefined
+                }
                 onDownload={handleDownload}
                 onSave={handleSaveToDatabase}
                 onBackToChat={handleBackToChat}
