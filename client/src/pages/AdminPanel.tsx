@@ -53,6 +53,33 @@ export default function AdminPanel() {
     queryKey: ['/api/project-submissions'],
     refetchInterval: 30000 // Refetch every 30 seconds
   });
+  
+  // Delete mutation
+  const deleteMutation = useMutation({
+    mutationFn: async (submissionId: number) => {
+      const response = await apiRequest(`/api/project-submissions/${submissionId}`, 'DELETE');
+      return response;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Success",
+        description: "Project submission deleted successfully",
+        variant: "default"
+      });
+      // Invalidate queries to refresh the data
+      queryClient.invalidateQueries({ queryKey: ['/api/project-submissions'] });
+      setIsDeleteDialogOpen(false);
+      setSubmissionToDelete(null);
+    },
+    onError: (error) => {
+      console.error("Error deleting submission:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete project submission",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Format date nicely
   const formatDate = (dateInput: string | Date) => {
@@ -126,6 +153,25 @@ export default function AdminPanel() {
     const markdown = generateMarkdown(markdownData);
     const filename = `${submission.title.replace(/\s+/g, '-').toLowerCase()}.md`;
     downloadMarkdown(markdown, filename);
+  };
+  
+  // Open delete confirmation dialog
+  const handleDeleteClick = (submission: ProjectSubmission) => {
+    setSubmissionToDelete(submission);
+    setIsDeleteDialogOpen(true);
+  };
+  
+  // Handle actual deletion
+  const confirmDelete = () => {
+    if (submissionToDelete) {
+      deleteMutation.mutate(submissionToDelete.id);
+    }
+  };
+  
+  // Cancel deletion
+  const cancelDelete = () => {
+    setIsDeleteDialogOpen(false);
+    setSubmissionToDelete(null);
   };
 
   return (
@@ -263,6 +309,15 @@ export default function AdminPanel() {
                       <Eye className="h-4 w-4" />
                       View
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="destructive"
+                      onClick={() => handleDeleteClick(submission)}
+                      className="gap-1"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete
+                    </Button>
                   </div>
                 </TableCell>
               </TableRow>
@@ -332,23 +387,66 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-2 mt-4">
+              <div className="flex justify-between gap-2 mt-4">
                 <Button 
-                  variant="outline"
-                  onClick={() => handleDownload(selectedSubmission)}
+                  variant="destructive"
+                  onClick={() => {
+                    handleCloseDialog();
+                    handleDeleteClick(selectedSubmission);
+                  }}
                   className="gap-1"
                 >
-                  <Download className="h-4 w-4" />
-                  Download Markdown
+                  <Trash2 className="h-4 w-4" />
+                  Delete Submission
                 </Button>
-                <Button onClick={handleCloseDialog}>
-                  Close
-                </Button>
+                
+                <div className="flex gap-2">
+                  <Button 
+                    variant="outline"
+                    onClick={() => handleDownload(selectedSubmission)}
+                    className="gap-1"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Markdown
+                  </Button>
+                  <Button onClick={handleCloseDialog}>
+                    Close
+                  </Button>
+                </div>
               </div>
             </>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this submission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the project submission
+              "{submissionToDelete?.title}" from the database.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteMutation.isPending ? (
+                <div className="flex items-center gap-2">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                  Deleting...
+                </div>
+              ) : (
+                <>Delete</>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
