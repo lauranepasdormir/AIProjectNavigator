@@ -109,17 +109,16 @@ export default function AdminPanel() {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
         },
         credentials: 'include'
       });
       
       if (!response.ok) {
-        throw new Error(`Delete failed: ${response.status} ${response.statusText}`);
+        const error = await response.text();
+        throw new Error(error || `Delete failed: ${response.status}`);
       }
       
-      return response.json();
+      return true;
     },
     onSuccess: () => {
       toast({

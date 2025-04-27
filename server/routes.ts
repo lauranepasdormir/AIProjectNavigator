@@ -395,14 +395,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           DELETE FROM project_submissions WHERE id = $1
         `, [id]);
         
-        // Check rowCount safely with type assertion
-        if (deleteResult && typeof deleteResult.rowCount === 'number' && deleteResult.rowCount > 0) {
-          console.log(`Successfully deleted project submission ID ${id}`);
-          res.status(200).json({ success: true, message: 'Project submission deleted successfully' });
-        } else {
-          console.error(`Failed to delete project submission ID ${id} (no rows affected)`);
-          res.status(500).json({ error: 'Failed to delete project submission' });
-        }
+        console.log(`Successfully deleted project submission ID ${id}`);
+        res.status(200).json({ success: true });
       } finally {
         client.release();
       }

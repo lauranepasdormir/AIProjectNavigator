@@ -11,12 +11,13 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-// Configure the pool with improved settings for reliability
+// Configure database pool with consistent settings
 export const pool = new Pool({ 
   connectionString: process.env.DATABASE_URL,
-  max: 10, // increase from default
-  idleTimeoutMillis: 30000, // timeout after 30 seconds
-  connectionTimeoutMillis: 5000, // timeout after 5 seconds
+  max: 5,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 5000,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
 // Create the drizzle instance directly - don't use the proxy as it breaks method chaining
