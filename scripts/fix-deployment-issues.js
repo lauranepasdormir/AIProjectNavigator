@@ -163,6 +163,9 @@ console.log(`\n${colors.yellow}Fix 3: Building static files for production...${c
 try {
   console.log(`${colors.yellow}Running build script...${colors.reset}`);
   execSync('node scripts/build-for-production.js', { stdio: 'inherit' });
+  
+  console.log(`${colors.yellow}Ensuring server/public directory is properly configured...${colors.reset}`);
+  execSync('node scripts/ensure-server-public.js', { stdio: 'inherit' });
 } catch (error) {
   console.error(`${colors.red}✗ Error building static files: ${error.message}${colors.reset}`);
 }

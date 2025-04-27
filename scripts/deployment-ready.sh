@@ -48,8 +48,12 @@ echo -e "\n${GREEN}✓ Environment verification complete${RESET}\n"
 echo -e "${YELLOW}Step 2: Building application for production...${RESET}"
 node scripts/build-for-production.js
 
-# Step 3: Verify deployment readiness
-echo -e "\n${YELLOW}Step 3: Verifying deployment readiness...${RESET}"
+# Step 3: Ensure server/public directory is correctly set up
+echo -e "\n${YELLOW}Step 3: Ensuring server/public directory is properly configured...${RESET}"
+node scripts/ensure-server-public.js
+
+# Step 4: Verify deployment readiness
+echo -e "\n${YELLOW}Step 4: Verifying deployment readiness...${RESET}"
 node scripts/verify-deployment-readiness.js
 
 echo -e "\n${BOLD}${CYAN}=== Deployment Preparation Complete ===${RESET}"

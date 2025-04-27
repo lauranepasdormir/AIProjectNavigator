@@ -8,23 +8,42 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Add health check endpoints - these should respond immediately without any processing
-// Important: Do not render the entire application or do database queries here
-app.get('/', (_req, res) => {
-  // This is the root endpoint that will be used for health checks by Replit deployments
-  // Just return a simple 200 OK response immediately
-  res.status(200).send('OK');
-});
+// Check if we're in development mode
+const isDevelopment = app.get("env") === "development";
 
-// Create an app route where we'll serve the actual frontend application
-app.get('/app', (_req, res, next) => {
-  // This will be handled by either Vite in development or serveStatic in production
-  next();
-});
-
+// Add health check endpoint that always responds immediately
 app.get('/health', (_req, res) => {
   res.status(200).send('OK');
 });
+
+// In production, handle root path specially
+if (!isDevelopment) {
+  // First, create a route for serving the application at /app
+  app.get('/app', (_req, res) => {
+    // Serve the full application at /app
+    const publicDir = path.resolve(process.cwd(), 'server/public');
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+
+  // Then create a root handler to serve either health check or the app
+  // based on the "Accept" header
+  app.get('/', (req, res) => {
+    const acceptHeader = req.headers.accept || '';
+    
+    // If the client accepts HTML, serve the full app (probably a browser)
+    if (acceptHeader.includes('text/html')) {
+      const publicDir = path.resolve(process.cwd(), 'server/public');
+      res.sendFile(path.join(publicDir, 'index.html'));
+    } else {
+      // Otherwise, send a simple OK for health checks
+      res.status(200).send('OK');
+    }
+  });
+} else {
+  // In development, let Vite handle these routes
+  app.get('/', (_req, res, next) => next());
+  app.get('/app', (_req, res, next) => next());
+}
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -66,11 +85,20 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+  
+  // In production, ensure assets can be served from server/public
+  if (!isDevelopment) {
+    const serverPublicDir = path.resolve(process.cwd(), 'server/public');
+    if (fs.existsSync(serverPublicDir)) {
+      log(`Serving additional static files from: ${serverPublicDir}`, "express");
+      app.use(express.static(serverPublicDir));
+    }
+  }
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  if (isDevelopment) {
     await setupVite(app, server);
   } else {
     serveStatic(app);
