@@ -7,6 +7,16 @@ const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Add health check endpoint
+app.get('/health', (_req, res) => {
+  res.status(200).send('OK');
+});
+
+// Add root endpoint that serves index.html
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(process.cwd(), 'dist/public/index.html'));
+});
+
 // Serve static files from the public directory
 app.use('/assets', express.static(path.join(process.cwd(), 'public/assets')));
 // Serve static files from the client/public directory
@@ -66,11 +76,8 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-  }, () => {
-    log(`serving on port ${port}`);
+  server.listen(port, "0.0.0.0", () => {
+    log(`Server running at http://0.0.0.0:${port}`);
+    log(`Health check endpoint available at http://0.0.0.0:${port}/health`);
   });
 })();
