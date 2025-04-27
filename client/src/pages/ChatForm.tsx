@@ -34,8 +34,8 @@ export default function ChatForm() {
   const submitProjectMutation = useMutation({
     mutationFn: async (projectData: Record<string, string>) => {
       const response = await apiRequest(
-        'POST',
         '/api/project-submissions',
+        'POST',
         projectData
       );
       return response.json();
@@ -62,8 +62,8 @@ export default function ChatForm() {
   const generateDraftMutation = useMutation({
     mutationFn: async ({ question, context }: { question: string; context: Record<string, string> }) => {
       const response = await apiRequest(
-        'POST',
         '/api/draft-suggestion',
+        'POST',
         { question, context }
       );
       return response.json();
