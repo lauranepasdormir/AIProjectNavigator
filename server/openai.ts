@@ -45,6 +45,17 @@ Limit your response to 3-4 sentences maximum, focusing on the most important asp
     return response.choices[0].message.content || "Sorry, I couldn't generate a suggestion.";
   } catch (error) {
     console.error("Error generating draft response:", error);
+    // More detailed error logging
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    
+    // If it's an API error, log more details
+    if (error && typeof error === 'object' && 'response' in error) {
+      console.error("API Response error:", error.response);
+    }
+    
     throw new Error("Failed to generate a draft response. Please try again later.");
   }
 }
