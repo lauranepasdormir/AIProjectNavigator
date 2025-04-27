@@ -101,6 +101,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete a project submission - requires authentication (admin only)
+  app.delete('/api/project-submissions/:id', isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: 'Invalid ID format' });
+      }
+
+      // Check if submission exists
+      const submission = await storage.getProjectSubmission(id);
+      if (!submission) {
+        return res.status(404).json({ error: 'Project submission not found' });
+      }
+      
+      // Delete the submission
+      const success = await storage.deleteProjectSubmission(id);
+      
+      if (success) {
+        res.status(200).json({ success: true, message: 'Project submission deleted successfully' });
+      } else {
+        res.status(500).json({ error: 'Failed to delete project submission' });
+      }
+    } catch (error) {
+      console.error('Error deleting project submission:', error);
+      res.status(500).json({ error: 'Failed to delete project submission' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

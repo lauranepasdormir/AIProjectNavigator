@@ -23,6 +23,7 @@ export interface IStorage {
   getProjectSubmission(id: number): Promise<ProjectSubmission | undefined>;
   getAllProjectSubmissions(): Promise<ProjectSubmission[]>;
   createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission>;
+  deleteProjectSubmission(id: number): Promise<boolean>;
   
   // Session store
   sessionStore: session.Store;
@@ -102,6 +103,14 @@ export class MemStorage implements IStorage {
     this.projectSubmissions.set(id, projectSubmission);
     return projectSubmission;
   }
+  
+  async deleteProjectSubmission(id: number): Promise<boolean> {
+    if (!this.projectSubmissions.has(id)) {
+      return false;
+    }
+    
+    return this.projectSubmissions.delete(id);
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -157,6 +166,20 @@ export class DatabaseStorage implements IStorage {
       .values(submissionWithDefaults)
       .returning();
     return projectSubmission;
+  }
+  
+  async deleteProjectSubmission(id: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(projectSubmissions)
+        .where(eq(projectSubmissions.id, id))
+        .returning({ id: projectSubmissions.id });
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error deleting project submission:", error);
+      return false;
+    }
   }
 }
 

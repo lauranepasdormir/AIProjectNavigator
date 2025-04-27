@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { ProjectSubmission } from "@shared/schema";
 import {
   Table,
@@ -16,21 +16,37 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Calendar, User, Download, Lock, Users, Globe, Edit } from "lucide-react";
+import { Search, Eye, Calendar, User, Download, Lock, Users, Globe, Edit, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { formatDistanceToNow } from "date-fns";
 import { generateMarkdown, downloadMarkdown, formatMarkdownToHtml } from "@/lib/markdown";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AdminPanel() {
   // State for search, dialog, and filters
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubmission, setSelectedSubmission] = useState<ProjectSubmission | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [submissionToDelete, setSubmissionToDelete] = useState<ProjectSubmission | null>(null);
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
+  const { toast } = useToast();
 
   // Fetch project submissions
   const { data: projectSubmissions, isLoading, error } = useQuery({
