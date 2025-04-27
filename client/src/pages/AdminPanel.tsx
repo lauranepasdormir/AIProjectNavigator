@@ -66,7 +66,7 @@ export default function AdminPanel() {
     refetchInterval: 30000, // Refetch every 30 seconds
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
-    enabled: !!authStatus, // Only fetch if authenticated
+    enabled: true, // Always fetch regardless of authentication status
   });
   
   // Combined loading state
@@ -120,6 +120,15 @@ export default function AdminPanel() {
     }
   };
 
+  // Debug logs to help troubleshoot
+  console.log("AdminPanel ProjectSubmissions:", {
+    authStatus,
+    projectSubmissions,
+    isSubmissionsArray: Array.isArray(projectSubmissions),
+    submissionsCount: Array.isArray(projectSubmissions) ? projectSubmissions.length : 0,
+    isLoading
+  });
+  
   // Filter submissions based on search query and visibility filter
   const filteredSubmissions = projectSubmissions && Array.isArray(projectSubmissions) 
     ? projectSubmissions.filter((submission: ProjectSubmission) => {
