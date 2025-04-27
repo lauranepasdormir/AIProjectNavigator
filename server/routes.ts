@@ -55,7 +55,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const client = await pool.connect();
         try {
           console.log('Database client acquired, executing query...');
-          const result = await client.query('SELECT * FROM project_submissions ORDER BY id DESC');
+          // This query transforms column names to match the expected camelCase format in the frontend
+          const result = await client.query(`
+            SELECT 
+              id, 
+              username, 
+              title, 
+              description, 
+              problem, 
+              technology, 
+              impact, 
+              team, 
+              status, 
+              contact,
+              visibility,
+              created_at AS "createdAt", 
+              user_id AS "userId"
+            FROM project_submissions 
+            ORDER BY id DESC
+          `);
           const submissions = result.rows;
           
           console.log(`Retrieved ${submissions.length} project submissions via direct SQL:`, 
@@ -104,32 +122,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid ID format' });
       }
 
-      const submission = await storage.getProjectSubmission(id);
-      if (!submission) {
-        return res.status(404).json({ error: 'Project submission not found' });
+      // Use direct SQL for better reliability
+      const client = await pool.connect();
+      try {
+        console.log(`Fetching project submission ID ${id} via direct SQL...`);
+        
+        const result = await client.query(`
+          SELECT 
+            id, 
+            username, 
+            title, 
+            description, 
+            problem, 
+            technology, 
+            impact, 
+            team, 
+            status, 
+            contact,
+            visibility,
+            created_at AS "createdAt", 
+            user_id AS "userId"
+          FROM project_submissions 
+          WHERE id = $1
+        `, [id]);
+        
+        const submission = result.rows[0];
+        
+        if (!submission) {
+          return res.status(404).json({ error: 'Project submission not found' });
+        }
+        
+        // Only allow access to public projects if not authenticated
+        if (!req.isAuthenticated() && submission.visibility !== 'public') {
+          return res.status(401).json({ error: 'Authentication required to view this project' });
+        }
+        
+        console.log(`Successfully retrieved project submission ID ${id}`);
+        res.json(submission);
+      } finally {
+        client.release();
       }
-
-      // Only allow access to public projects if not authenticated
-      if (!req.isAuthenticated() && submission.visibility !== 'public') {
-        return res.status(401).json({ error: 'Authentication required to view this project' });
-      }
-
-      res.json(submission);
     } catch (error) {
       console.error('Error fetching project submission:', error);
-      res.status(500).json({ error: 'Failed to fetch project submission' });
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      res.status(500).json({ 
+        error: 'Failed to fetch project submission',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
   
   // Route for public projects
   app.get('/api/public-projects', async (req: Request, res: Response) => {
     try {
-      const allSubmissions = await storage.getAllProjectSubmissions();
-      const publicSubmissions = allSubmissions.filter(submission => submission.visibility === 'public');
-      res.json(publicSubmissions);
+      console.log('Fetching public projects via direct SQL...');
+      const client = await pool.connect();
+      try {
+        // Direct SQL query with column name mapping to camelCase
+        const result = await client.query(`
+          SELECT 
+            id, 
+            username, 
+            title, 
+            description, 
+            problem, 
+            technology, 
+            impact, 
+            team, 
+            status, 
+            contact,
+            visibility,
+            created_at AS "createdAt", 
+            user_id AS "userId"
+          FROM project_submissions 
+          WHERE visibility = 'public'
+          ORDER BY id DESC
+        `);
+        const submissions = result.rows;
+        console.log(`Retrieved ${submissions.length} public project submissions`);
+        
+        // Set cache control headers
+        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        
+        res.json(submissions);
+      } finally {
+        client.release();
+      }
     } catch (error) {
       console.error('Error fetching public projects:', error);
-      res.status(500).json({ error: 'Failed to fetch public projects' });
+      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      res.status(500).json({ 
+        error: 'Failed to fetch public projects',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
 
