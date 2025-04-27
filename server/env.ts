@@ -8,13 +8,13 @@ export const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Get the appropriate database URL based on environment
 export const getDatabaseUrl = (): string => {
-  // In development, prefer DEV_DATABASE_URL
-  if (isDevelopment && process.env.DEV_DATABASE_URL) {
+  // In development, prefer DEV_DATABASE_URL if it's not empty
+  if (isDevelopment && process.env.DEV_DATABASE_URL && process.env.DEV_DATABASE_URL.trim() !== '') {
     return process.env.DEV_DATABASE_URL;
   }
   
-  // In production, prefer PROD_DATABASE_URL
-  if (!isDevelopment && process.env.PROD_DATABASE_URL) {
+  // In production, prefer PROD_DATABASE_URL if it's not empty
+  if (!isDevelopment && process.env.PROD_DATABASE_URL && process.env.PROD_DATABASE_URL.trim() !== '') {
     return process.env.PROD_DATABASE_URL;
   }
   
@@ -29,5 +29,11 @@ export const getDatabaseUrl = (): string => {
 // Log the current environment
 export const logEnvironment = (): void => {
   console.log(`Running in ${isDevelopment ? 'development' : 'production'} mode`);
-  console.log(`Using ${isDevelopment ? 'development' : 'production'} database`);
+  
+  // Determine which database URL is being used
+  const usingDevDb = isDevelopment && process.env.DEV_DATABASE_URL && process.env.DEV_DATABASE_URL.trim() !== '';
+  const usingProdDb = !isDevelopment && process.env.PROD_DATABASE_URL && process.env.PROD_DATABASE_URL.trim() !== '';
+  const dbSource = usingDevDb ? 'development' : (usingProdDb ? 'production' : 'default');
+  
+  console.log(`Using ${dbSource} database connection`);
 };
