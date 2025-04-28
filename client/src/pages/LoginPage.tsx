@@ -42,8 +42,29 @@ export default function LoginPage() {
         return;
       }
       
-      console.log("Attempting login with provided credentials");
+      console.log("Attempting login with provided credentials:", { username: email, passwordProvided: !!password });
       
+      // Direct fetch approach for debugging
+      const response = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          username: email,
+          password 
+        }),
+        credentials: "include",
+      });
+      
+      console.log(`Login response status: ${response.status} ${response.statusText}`);
+      
+      const data = await response.json();
+      console.log("Login response data:", data);
+      
+      if (!response.ok) {
+        throw new Error(data.error || `Login failed: ${response.status}`);
+      }
+      
+      // Refresh authentication state
       await login(email, password);
       console.log("Login successful, redirecting to admin panel");
       

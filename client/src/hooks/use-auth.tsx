@@ -68,13 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login function
   const login = async (email: string, password: string) => {
     try {
+      // Input validation
+      if (!email || !password) {
+        throw new Error("Both email and password are required");
+      }
+      
       // Fix: Server expects 'username' not 'email'
-      console.log("Login attempt with:", { username: email });
+      console.log("Auth hook login attempt with:", { username: email, passwordProvided: !!password });
       
       // Use a simple fetch directly here to avoid issues with cloning
       const response = await fetch("/api/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          // Add cache-busting headers 
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache"
+        },
         body: JSON.stringify({ 
           username: email, // Note: Send as username
           password 
@@ -83,18 +93,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       
       // For debugging - log the status
-      console.log(`Login response status: ${response.status} ${response.statusText}`);
+      console.log(`Auth hook login response status: ${response.status} ${response.statusText}`);
       
       let responseData;
       try {
         // Try to parse the response as JSON
+        const clonedResponse = response.clone(); // Clone before reading body
         responseData = await response.json();
-        console.log("Login response data:", responseData);
+        console.log("Auth hook login response data:", responseData);
       } catch (e) {
         console.error("Error parsing login response as JSON:", e);
         // Handle non-JSON responses
-        const textResponse = await response.text();
-        console.log("Login response text:", textResponse);
+        try {
+          const textResponse = await response.text();
+          console.log("Auth hook login response text:", textResponse);
+        } catch (textError) {
+          console.error("Error getting text response:", textError);
+        }
         throw new Error(`Login Error (non-JSON response): ${response.status} ${response.statusText}`);
       }
       
