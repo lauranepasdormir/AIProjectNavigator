@@ -29,6 +29,19 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, setLocation]);
 
+  const showSuccessAndRedirect = () => {
+    // Add successful login message before redirect
+    setError("Login successful! Redirecting to admin panel...");
+    document.querySelector("div.p-3")?.classList.remove("bg-destructive");
+    document.querySelector("div.p-3")?.classList.add("bg-green-500");
+    
+    // Delay the redirect
+    setTimeout(() => {
+      console.log("Redirecting to admin panel now");
+      window.location.href = "/admin";  // Force a full page reload to ensure fresh state
+    }, 1000);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -42,42 +55,39 @@ export default function LoginPage() {
         return;
       }
       
-      console.log("Attempting login with provided credentials:", { username: email, passwordProvided: !!password });
+      console.log("Attempting login with:", { username: email });
       
-      // Direct fetch approach for debugging
-      const response = await fetch("/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          username: email,
-          password 
-        }),
-        credentials: "include",
-      });
-      
-      console.log(`Login response status: ${response.status} ${response.statusText}`);
-      
-      const data = await response.json();
-      console.log("Login response data:", data);
-      
-      if (!response.ok) {
-        throw new Error(data.error || `Login failed: ${response.status}`);
+      // Direct fetch approach
+      try {
+        const response = await fetch("/api/login", {
+          method: "POST",
+          headers: { 
+            "Content-Type": "application/json",
+            "Accept": "application/json" 
+          },
+          body: JSON.stringify({ 
+            username: email,
+            password
+          }),
+          credentials: "include",
+        });
+        
+        console.log(`Login response status: ${response.status} ${response.statusText}`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log("Login successful, user data:", data);
+          showSuccessAndRedirect();
+          return;
+        }
+        
+        // If not successful, get error details
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Login failed: ${response.status}`);
+      } catch (error) {
+        console.error("Login error:", error);
+        throw error;
       }
-      
-      // Refresh authentication state
-      await login(email, password);
-      console.log("Login successful, redirecting to admin panel");
-      
-      // Add successful login message before redirect
-      setError("Login successful! Redirecting to admin panel...");
-      document.querySelector("div.p-3")?.classList.remove("bg-destructive");
-      document.querySelector("div.p-3")?.classList.add("bg-green-500");
-      
-      // Delay the redirect to ensure state is properly updated and user sees success message
-      setTimeout(() => {
-        console.log("Redirecting to admin panel now");
-        setLocation("/admin");
-      }, 1000);
     } catch (error) {
       console.error("Login form error:", error);
       setError(error instanceof Error ? error.message : "Login failed");

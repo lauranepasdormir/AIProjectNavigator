@@ -226,9 +226,27 @@ export function setupAuth(app: Express) {
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    if (!req.body || !req.body.username || !req.body.password) {
-      console.error("Missing credentials in login request");
-      return res.status(401).json({ error: "Missing credentials" });
+    // Make sure we have a properly parsed body
+    if (typeof req.body !== 'object') {
+      console.error("Request body is not an object, body parser may not be working:", req.body);
+      return res.status(400).json({ error: "Invalid request format. Make sure Content-Type is application/json." });
+    }
+    
+    // Check for empty body - explicit check against null/undefined
+    if (req.body === null || req.body === undefined) {
+      console.error("Request body is null or undefined");
+      return res.status(400).json({ error: "Empty request body" });
+    }
+    
+    // Check for missing fields specifically
+    if (!req.body.username) {
+      console.error("Missing username in request");
+      return res.status(401).json({ error: "Username is required" });
+    }
+    
+    if (!req.body.password) {
+      console.error("Missing password in request");
+      return res.status(401).json({ error: "Password is required" });
     }
     
     // Special handling for our hardcoded admin account

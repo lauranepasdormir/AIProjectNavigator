@@ -7,8 +7,40 @@ import { performStartupChecks } from "./startup-checks";
 import { healthCheckMiddleware } from "./health-checks";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+// Configure body parsers with increased limits and detailed error handling
+app.use(express.json({ 
+  limit: '1mb',
+  strict: true, // Only accept arrays and objects
+  verify: (req: Request, res: Response, buf: Buffer) => {
+    try {
+      JSON.parse(buf.toString());
+    } catch (e: any) {
+      console.error('Invalid JSON in request body', e);
+      res.status(400).send({ 
+        error: 'Invalid JSON in request body',
+        message: e.message 
+      });
+      throw new Error('Invalid JSON');
+    }
+  }
+}));
+
+// Log all JSON parse errors
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    console.error('JSON parse error:', err.message);
+    return res.status(400).send({ 
+      error: 'Invalid JSON format',
+      message: err.message
+    });
+  }
+  next(err);
+});
+
+app.use(express.urlencoded({ 
+  extended: true,
+  limit: '1mb'
+}));
 
 // Check if we're in development mode
 const isDevelopment = app.get("env") === "development";
