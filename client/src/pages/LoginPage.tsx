@@ -35,22 +35,16 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      console.log("Attempting login with:", { email, passwordLength: password?.length });
-      // First clear any existing redirect timer to be safe
-      
-      // Pre-fill default admin credentials for ease of testing
-      // This is safe to do in this development/demo context
-      const actualEmail = email || "admin@digitalvillage.com.au";
-      const actualPassword = password || "password123";
-      
-      if (!email) {
-        console.log("Using default email address");
-      }
-      if (!password) {
-        console.log("Using default password");
+      // Security improvement: Only allow login with explicitly provided credentials
+      if (!email || !password) {
+        setError("Both email and password are required");
+        setIsLoading(false);
+        return;
       }
       
-      await login(actualEmail, actualPassword);
+      console.log("Attempting login with provided credentials");
+      
+      await login(email, password);
       console.log("Login successful, redirecting to admin panel");
       
       // Add successful login message before redirect
@@ -78,6 +72,9 @@ export default function LoginPage() {
           <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>
             Sign in to access the admin dashboard
+            <div className="mt-2 text-xs text-muted-foreground">
+              <strong>Note:</strong> For this demo, use <span className="font-mono">admin@digitalvillage.com.au</span> with password <span className="font-mono">password123</span>
+            </div>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
@@ -92,7 +89,7 @@ export default function LoginPage() {
               <Input
                 id="email"
                 type="email"
-                placeholder="admin@digitalvillage.com.au"
+                placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -104,7 +101,7 @@ export default function LoginPage() {
               <Input
                 id="password"
                 type="password"
-                placeholder="password123"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
