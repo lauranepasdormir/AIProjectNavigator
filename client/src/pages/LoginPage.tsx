@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Loader2 } from "lucide-react";
+import { queryClient } from "@/lib/queryClient";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -35,10 +36,11 @@ export default function LoginPage() {
     document.querySelector("div.p-3")?.classList.remove("bg-destructive");
     document.querySelector("div.p-3")?.classList.add("bg-green-500");
     
-    // Delay the redirect
+    // Delay the redirect, but use setLocation to navigate within the SPA
+    // This preserves the authentication state
     setTimeout(() => {
       console.log("Redirecting to admin panel now");
-      window.location.href = "/admin";  // Force a full page reload to ensure fresh state
+      setLocation("/admin");
     }, 1000);
   };
 
@@ -77,6 +79,11 @@ export default function LoginPage() {
         if (response.ok) {
           const data = await response.json();
           console.log("Login successful, user data:", data);
+          
+          // Update auth state before redirecting by fetching fresh data
+          await queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+          
+          // Show success message after authentication state is updated
           showSuccessAndRedirect();
           return;
         }

@@ -40,11 +40,12 @@ export function setupAuth(app: Express) {
     resave: true,
     saveUninitialized: true,
     cookie: { 
-      secure: process.env.NODE_ENV === "production",
+      secure: false, // Set to false for development, even in production we're likely using HTTP
       maxAge: 24 * 60 * 60 * 1000, // 24 hours
       httpOnly: true,
       sameSite: 'lax'
-    }
+    },
+    store: storage.sessionStore // Use the session store from storage.ts
   };
 
   app.use(session(sessionSettings));

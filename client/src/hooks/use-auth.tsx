@@ -57,13 +57,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (userData) {
+      console.log("Setting authenticated user from userData:", userData);
       setUser(userData);
       setIsAuthenticated(true);
+      
+      // Store authentication state in sessionStorage for persistence
+      // This helps prevent auth state from being lost on redirects
+      sessionStorage.setItem('isAuthenticated', 'true');
+      sessionStorage.setItem('user', JSON.stringify(userData));
     } else if (!isLoading && !isError) {
+      console.log("Clearing authentication state");
       setUser(null);
       setIsAuthenticated(false);
+      
+      // Clear session storage
+      sessionStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem('user');
     }
   }, [userData, isLoading, isError]);
+  
+  // Initialize from sessionStorage on mount
+  useEffect(() => {
+    const storedAuth = sessionStorage.getItem('isAuthenticated');
+    const storedUser = sessionStorage.getItem('user');
+    
+    if (storedAuth === 'true' && storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        console.log("Restoring auth state from session storage:", parsedUser);
+        setUser(parsedUser);
+        setIsAuthenticated(true);
+        
+        // Refresh the data from server
+        queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+      } catch (e) {
+        console.error("Error parsing stored user:", e);
+        sessionStorage.removeItem('isAuthenticated');
+        sessionStorage.removeItem('user');
+      }
+    }
+  }, []);
 
   // Login function
   const login = async (email: string, password: string) => {
