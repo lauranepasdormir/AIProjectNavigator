@@ -72,9 +72,6 @@ export default function LoginPage() {
           <CardTitle className="text-2xl">Admin Login</CardTitle>
           <CardDescription>
             Sign in to access the admin dashboard
-            <div className="mt-2 text-xs text-muted-foreground">
-              <strong>Note:</strong> For this demo, use <span className="font-mono">admin@digitalvillage.com.au</span> with password <span className="font-mono">password123</span>
-            </div>
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit}>
