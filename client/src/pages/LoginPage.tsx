@@ -50,7 +50,7 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      // Security improvement: Only allow login with explicitly provided credentials
+      // Validate credentials
       if (!email || !password) {
         setError("Both email and password are required");
         setIsLoading(false);
@@ -59,40 +59,71 @@ export default function LoginPage() {
       
       console.log("Attempting login with:", { username: email });
       
-      // Direct fetch approach
+      // Directly access the auth context's login function
       try {
-        const response = await fetch("/api/login", {
+        // First attempt with our simplified direct fetch 
+        const loginResponse = await fetch("/api/login", {
           method: "POST",
           headers: { 
-            "Content-Type": "application/json",
-            "Accept": "application/json" 
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ 
             username: email,
             password
           }),
-          credentials: "include",
+          credentials: "include"
         });
         
-        console.log(`Login response status: ${response.status} ${response.statusText}`);
+        console.log(`Login response status: ${loginResponse.status}`);
         
-        if (response.ok) {
-          const data = await response.json();
-          console.log("Login successful, user data:", data);
-          
-          // Update auth state before redirecting by fetching fresh data
-          await queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-          
-          // Show success message after authentication state is updated
-          showSuccessAndRedirect();
-          return;
+        if (!loginResponse.ok) {
+          const errorData = await loginResponse.json();
+          throw new Error(errorData.error || `Login failed: ${loginResponse.status}`);
         }
         
-        // If not successful, get error details
-        const errorData = await response.json();
-        throw new Error(errorData.error || `Login failed: ${response.status}`);
+        const userData = await loginResponse.json();
+        console.log("Login successful, user data:", userData);
+        
+        // Set success state and show message
+        setError("Login successful! Redirecting to admin panel...");
+        document.querySelector("div.p-3")?.classList.remove("bg-destructive");
+        document.querySelector("div.p-3")?.classList.add("bg-green-500");
+        
+        // Force an immediate check to refresh auth state
+        try {
+          console.log("Checking auth state after login...");
+          const meResponse = await fetch("/api/me", {
+            credentials: "include",
+            headers: {
+              "Cache-Control": "no-cache, no-store, must-revalidate",
+              "Pragma": "no-cache"
+            }
+          });
+          
+          if (meResponse.ok) {
+            const currentUser = await meResponse.json();
+            console.log("Auth verified, current user:", currentUser);
+            
+            // We're successfully logged in, force React Query to refresh
+            await queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+            
+            // Redirect after a short delay to show success message
+            setTimeout(() => {
+              setLocation("/admin");
+            }, 1000);
+          } else {
+            console.error("Auth check failed after login");
+            throw new Error("Login succeeded but auth verification failed");
+          }
+        } catch (verifyError) {
+          console.error("Error verifying authentication:", verifyError);
+          // Even if verification fails, try to redirect anyway
+          setTimeout(() => {
+            window.location.href = "/admin"; // Fallback to hard navigation
+          }, 1000);
+        }
       } catch (error) {
-        console.error("Login error:", error);
+        console.error("Login request error:", error);
         throw error;
       }
     } catch (error) {

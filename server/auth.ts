@@ -213,128 +213,137 @@ export function setupAuth(app: Express) {
   }
 
   // Auth routes
-  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+  app.post("/api/login", async (req: Request, res: Response, next: NextFunction) => {
     console.log("Login request received:", { 
       body: req.body,
       bodyType: typeof req.body,
       username: req.body?.username,
       hasPassword: !!req.body?.password
     });
-    console.log(`Current session ID before login: ${req.sessionID}`);
     
-    // Set cache headers immediately
+    // Set no-cache headers
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    // Make sure we have a properly parsed body
-    if (typeof req.body !== 'object') {
-      console.error("Request body is not an object, body parser may not be working:", req.body);
-      return res.status(400).json({ error: "Invalid request format. Make sure Content-Type is application/json." });
+    // Basic validation
+    if (!req.body || !req.body.username || !req.body.password) {
+      console.error("Missing credentials in request");
+      return res.status(400).json({ error: "Username and password are required" });
     }
     
-    // Check for empty body - explicit check against null/undefined
-    if (req.body === null || req.body === undefined) {
-      console.error("Request body is null or undefined");
-      return res.status(400).json({ error: "Empty request body" });
-    }
+    const { username, password } = req.body;
     
-    // Check for missing fields specifically
-    if (!req.body.username) {
-      console.error("Missing username in request");
-      return res.status(401).json({ error: "Username is required" });
-    }
-    
-    if (!req.body.password) {
-      console.error("Missing password in request");
-      return res.status(401).json({ error: "Password is required" });
-    }
-    
-    // Special handling for our hardcoded admin account
-    // This bypasses Passport for the admin user to ensure reliability
-    if (req.body.username === ADMIN_USERNAME && req.body.password === ADMIN_PASSWORD) {
-      console.log("Admin credentials detected, using direct login path");
+    try {
+      console.log(`Attempting login for user: ${username} (session: ${req.sessionID})`);
       
-      // Get the admin user from storage
-      storage.getUserByUsername(ADMIN_USERNAME)
-        .then(adminUser => {
-          if (!adminUser) {
-            console.log("Admin user not found in database, creating it first");
-            return hashPassword(ADMIN_PASSWORD)
-              .then(hashedPassword => {
-                return storage.createUser({
-                  username: ADMIN_USERNAME,
-                  password: hashedPassword
-                });
-              });
-          }
-          return adminUser;
-        })
-        .then(adminUser => {
-          // Manually log in the user by calling req.login
+      // Admin override - hard-coded credentials
+      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        console.log("Admin credentials match, proceeding with admin login");
+        
+        // Find or create admin user
+        let adminUser = await storage.getUserByUsername(ADMIN_USERNAME);
+        
+        if (!adminUser) {
+          console.log("Admin user not found, creating user in database");
+          const hashedPassword = await hashPassword(ADMIN_PASSWORD);
+          adminUser = await storage.createUser({
+            username: ADMIN_USERNAME,
+            password: hashedPassword
+          });
+          console.log("Admin user created:", adminUser.id);
+        }
+        
+        // Manual login - directly add user to session
+        console.log("Manually logging in admin user to session");
+        
+        // Create a new promise for req.login
+        await new Promise<void>((resolve, reject) => {
           req.login(adminUser, (err) => {
             if (err) {
-              console.error("Admin direct login error:", err);
-              return next(err);
+              console.error("Login error:", err);
+              reject(err);
+              return;
             }
-            
-            console.log(`Admin user successfully logged in via direct path`);
-            console.log(`- Session ID after admin login: ${req.sessionID}`);
-            console.log(`- Session after admin login:`, req.session);
-            
-            // Validate that authentication worked 
-            console.log(`- Is authenticated after login: ${req.isAuthenticated()}`);
-            
-            // Return successful response
-            return res.json({ 
-              id: adminUser.id,
-              username: adminUser.username,
-              message: "Login successful (direct path)",
-              sessionId: req.sessionID,
-              authenticated: true
-            });
+            resolve();
           });
-        })
-        .catch(error => {
-          console.error("Error in direct admin login:", error);
-          return res.status(500).json({ error: "Login error", message: error.message });
         });
-      
-      return; // End execution here for direct path
-    }
-    
-    // Regular path using Passport for non-admin users
-    passport.authenticate("local", (err: Error, user: Express.User, info: { message: string }) => {
-      if (err) {
-        console.error("Login authentication error:", err);
-        return next(err);
+        
+        // Verify session is established
+        console.log("Session after login:");
+        console.log(`- Is authenticated: ${req.isAuthenticated()}`);
+        console.log(`- Session ID: ${req.sessionID}`);
+        console.log(`- User: ${req.user ? 'Present' : 'Missing'}`);
+        
+        // Save session explicitly
+        await new Promise<void>((resolve, reject) => {
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save error:", err);
+              reject(err);
+              return;
+            }
+            console.log("Session explicitly saved");
+            resolve();
+          });
+        });
+        
+        // Return success
+        return res.status(200).json({
+          id: adminUser.id,
+          username: adminUser.username,
+          success: true,
+          message: "Admin login successful"
+        });
       }
       
-      if (!user) {
-        console.error("Login failed - invalid credentials:", info.message);
-        return res.status(401).json({ error: info.message || "Invalid credentials" });
-      }
-      
-      req.login(user, (err) => {
+      // Non-admin user authentication
+      console.log("Not using admin credentials, authenticating with regular flow");
+      passport.authenticate("local", (err: Error, user: Express.User, info: { message: string }) => {
         if (err) {
-          console.error("Session login error:", err);
+          console.error("Authentication error:", err);
           return next(err);
         }
         
-        console.log(`User ${user.username} (ID: ${user.id}) successfully logged in`);
-        console.log(`- Session ID after login: ${req.sessionID}`);
-        console.log(`- Session after login:`, req.session);
-        console.log(`- Is authenticated after login: ${req.isAuthenticated()}`);
+        if (!user) {
+          console.log("Authentication failed:", info.message);
+          return res.status(401).json({ error: "Invalid credentials" });
+        }
         
-        return res.json({ 
-          id: user.id,
-          username: user.username,
-          message: "Login successful",
-          sessionId: req.sessionID, // Include session ID for debugging
-          authenticated: true
+        req.login(user, (err) => {
+          if (err) {
+            console.error("Login session error:", err);
+            return next(err);
+          }
+          
+          // Save session explicitly
+          req.session.save((err) => {
+            if (err) {
+              console.error("Session save error:", err);
+              return next(err);
+            }
+            
+            console.log(`User logged in: ${user.username}`);
+            console.log(`- Session ID: ${req.sessionID}`);
+            console.log(`- Is authenticated: ${req.isAuthenticated()}`);
+            
+            return res.status(200).json({
+              id: user.id,
+              username: user.username,
+              success: true,
+              message: "Login successful" 
+            });
+          });
         });
+      })(req, res, next);
+      
+    } catch (error) {
+      console.error("Login error:", error);
+      return res.status(500).json({ 
+        error: "Login failed", 
+        message: error instanceof Error ? error.message : "Unknown error" 
       });
-    })(req, res, next);
+    }
   });
 
   app.post("/api/logout", (req: Request, res: Response) => {
