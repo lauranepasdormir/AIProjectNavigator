@@ -244,6 +244,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log("Validation passed, creating project submission");
+      console.log("Project title:", validationResult.data.title);
+      console.log("Project description:", validationResult.data.description?.substring(0, 100));
       
       // Insert with direct SQL for better reliability
       const client = await pool.connect();

@@ -27,6 +27,45 @@ export default function ChatForm() {
   const [selectedVisibility, setSelectedVisibility] = useState<string>("private"); // Default to private
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
   
+  // Clear all project data from localStorage and reset state
+  const clearProjectData = () => {
+    // Ask for confirmation before clearing data
+    if (window.confirm("Are you sure you want to start a new project? This will clear all your current project data.")) {
+      // Clear localStorage
+      localStorage.removeItem('projectAnswers');
+      
+      // Reset state
+      setAnswers({});
+      setMessages([]);
+      setCurrentQuestion(-1);
+      setIsPreviewMode(false);
+      setPreviewViewMode('edit');
+      setIsSaved(false);
+      setGeneratingDraftForQuestion(null);
+      setOnboardingStage('welcome');
+      setSelectedVisibility("private");
+      setProfileChoice(null);
+      
+      // Add initial welcome message
+      setTimeout(() => {
+        const welcomeMessage: ChatMessage = {
+          id: uuidv4(),
+          type: 'bot',
+          content: "Hi! Glad you made it here. Thanks for taking the time to share some info about a project you worked on.",
+          timestamp: new Date()
+        };
+        setMessages([welcomeMessage]);
+      }, 100);
+      
+      // Show success message
+      toast({
+        title: "Project Reset",
+        description: "Started a new project. All previous data has been cleared.",
+        variant: "default",
+      });
+    }
+  };
+  
   // Toast notifications
   const { toast } = useToast();
   
@@ -398,9 +437,19 @@ export default function ChatForm() {
       <div className="flex justify-center items-center py-2 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
         <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Form Header */}
-          <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center shadow-md">
-            <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-            <h1 className="text-lg sm:text-xl font-semibold">Submit Your AI Project</h1>
+          <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center justify-between shadow-md">
+            <div className="flex items-center">
+              <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
+              <h1 className="text-lg sm:text-xl font-semibold">Submit Your AI Project</h1>
+            </div>
+            <Button 
+              variant="secondary" 
+              size="sm" 
+              onClick={clearProjectData}
+              className="text-xs sm:text-sm"
+            >
+              Start New Project
+            </Button>
           </div>
           
           {/* Main Content */}
