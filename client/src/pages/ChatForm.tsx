@@ -379,6 +379,9 @@ export default function ChatForm() {
     // Save the question content to track which question is being processed
     setGeneratingDraftForQuestion(question);
     
+    // Debug log to see what context is being sent
+    console.log("Sending draft request with context:", JSON.stringify(answers, null, 2));
+    
     // Generate the draft using the OpenAI API
     generateDraftMutation.mutate({
       question,

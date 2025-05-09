@@ -24,9 +24,13 @@ export async function generateDraftResponse(question: string, context?: Record<s
     let contextString = "";
     if (context && Object.keys(context).length > 0) {
       contextString = "Here's some context about the project:\n\n";
+      
+      console.log("Full context object for draft generation:", JSON.stringify(context, null, 2));
+      
       Object.entries(context).forEach(([key, value]) => {
         if (value && value.trim()) {
           contextString += `${key}: ${value}\n`;
+          console.log(`Context key-value pair: ${key} = ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
         }
       });
     }
