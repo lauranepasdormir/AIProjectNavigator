@@ -32,7 +32,7 @@ async function comparePasswords(supplied: string, stored: string) {
 // Hardcoded admin credentials for the MVP
 const ADMIN_EMAIL = "admin@digitalvillage.com.au";
 const ADMIN_USERNAME = "admin@digitalvillage.com.au";  // Using email as username
-const ADMIN_PASSWORD = "password123";  // Default password
+const ADMIN_PASSWORD = "Password123";  // Updated password - must match the one we set in database
 
 export function setupAuth(app: Express) {
   const sessionSettings: session.SessionOptions = {
