@@ -115,41 +115,75 @@ export class MemStorage implements IStorage {
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
+  private maxRetries = 3;
   
   constructor() {
-    // Create PostgreSQL session store
-    const PostgresSessionStore = connectPg(session);
-    this.sessionStore = new PostgresSessionStore({
-      pool,
-      createTableIfMissing: true
+    // Create memory store as fallback, will switch to PostgreSQL if successful
+    const MemoryStore = createMemoryStore(session);
+    const memoryStore = new MemoryStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
     });
+    
+    // Create PostgreSQL session store
+    try {
+      const PostgresSessionStore = connectPg(session);
+      this.sessionStore = new PostgresSessionStore({
+        pool,
+        createTableIfMissing: true,
+        errorLog: (err) => console.error('Session store error:', err),
+        pruneSessionInterval: 60 // Prune expired sessions every minute
+      });
+      console.log('Successfully created PostgreSQL session store');
+    } catch (error) {
+      console.error('Failed to create PostgreSQL session store, using memory store instead:', error);
+      this.sessionStore = memoryStore;
+    }
+  }
+  
+  // Helper method for database operations with retry
+  private async withRetry<T>(operation: string, fn: () => Promise<T>): Promise<T> {
+    let retries = 0;
+    
+    while (true) {
+      try {
+        return await fn();
+      } catch (error) {
+        retries++;
+        console.error(`Error in ${operation} (attempt ${retries}/${this.maxRetries}):`, 
+          error instanceof Error ? error.message : 'Unknown error');
+        
+        if (retries >= this.maxRetries) {
+          console.error(`Maximum retries reached for ${operation}, throwing error`);
+          throw error;
+        }
+        
+        // Add exponential backoff
+        const delay = Math.pow(2, retries) * 500; // 1s, 2s, 4s
+        console.log(`Retrying ${operation} in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
   }
   
   // User methods
   async getUser(id: number): Promise<User | undefined> {
-    try {
+    return this.withRetry('getUser', async () => {
       const result = await db.select().from(users).where(eq(users.id, id));
       if (result.length === 0) return undefined;
       return result[0];
-    } catch (error) {
-      console.error("Error in getUser:", error);
-      throw error;
-    }
+    });
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    try {
+    return this.withRetry('getUserByUsername', async () => {
       const result = await db.select().from(users).where(eq(users.username, username));
       if (result.length === 0) return undefined;
       return result[0];
-    } catch (error) {
-      console.error("Error in getUserByUsername:", error);
-      throw error;
-    }
+    });
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    try {
+    return this.withRetry('createUser', async () => {
       const result = await db
         .insert(users)
         .values(insertUser)
@@ -160,59 +194,29 @@ export class DatabaseStorage implements IStorage {
       }
       
       return result[0];
-    } catch (error) {
-      console.error("Error in createUser:", error);
-      throw error;
-    }
+    });
   }
   
   // Project submission methods
   async getProjectSubmission(id: number): Promise<ProjectSubmission | undefined> {
-    try {
+    return this.withRetry('getProjectSubmission', async () => {
       const result = await db.select().from(projectSubmissions).where(eq(projectSubmissions.id, id));
       if (result.length === 0) return undefined;
       return result[0];
-    } catch (error) {
-      console.error("Error in getProjectSubmission:", error);
-      throw error;
-    }
+    });
   }
   
   async getAllProjectSubmissions(): Promise<ProjectSubmission[]> {
-    let retries = 0;
-    const maxRetries = 3;
-    
-    while (retries < maxRetries) {
-      try {
-        console.log(`DatabaseStorage: Attempting to fetch all project submissions from database (attempt ${retries + 1}/${maxRetries})...`);
-        const results = await db.select().from(projectSubmissions);
-        console.log(`DatabaseStorage: Successfully retrieved ${results.length} project submissions`);
-        return results;
-      } catch (error) {
-        retries++;
-        console.error(`DatabaseStorage: Error fetching all project submissions (attempt ${retries}/${maxRetries}):`, error);
-        console.error('DatabaseStorage: Error details:', error instanceof Error ? error.message : 'Unknown error');
-        
-        if (retries >= maxRetries) {
-          console.error('DatabaseStorage: Maximum retries reached, throwing error');
-          // Re-throw to be handled by the calling code
-          throw error;
-        } else {
-          // Add exponential backoff
-          const delay = Math.pow(2, retries) * 500; // 1s, 2s, 4s
-          console.log(`DatabaseStorage: Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
-    }
-    
-    // This line should never be reached due to the throw in the catch block above
-    // but TypeScript requires a return statement
-    return [];
+    return this.withRetry('getAllProjectSubmissions', async () => {
+      console.log('Attempting to fetch all project submissions from database...');
+      const results = await db.select().from(projectSubmissions);
+      console.log(`Successfully retrieved ${results.length} project submissions`);
+      return results;
+    });
   }
   
   async createProjectSubmission(submission: InsertProjectSubmission): Promise<ProjectSubmission> {
-    try {
+    return this.withRetry('createProjectSubmission', async () => {
       // Ensure username is set with a default if not provided
       const submissionWithDefaults = {
         ...submission,
@@ -229,24 +233,21 @@ export class DatabaseStorage implements IStorage {
       }
       
       return result[0];
-    } catch (error) {
-      console.error("Error in createProjectSubmission:", error);
-      throw error;
-    }
+    });
   }
   
   async deleteProjectSubmission(id: number): Promise<boolean> {
-    try {
+    return this.withRetry('deleteProjectSubmission', async () => {
       const result = await db
         .delete(projectSubmissions)
         .where(eq(projectSubmissions.id, id))
         .returning({ id: projectSubmissions.id });
       
       return result.length > 0;
-    } catch (error) {
+    }).catch(error => {
       console.error("Error deleting project submission:", error);
       return false;
-    }
+    });
   }
 }
 
