@@ -7,13 +7,34 @@ import { performStartupChecks } from "./startup-checks";
 import { healthCheckMiddleware } from "./health-checks";
 
 const app = express();
+
+// Add debugging middleware to log all requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/api/login') {
+    console.log(`=== LOGIN REQUEST DEBUG ===`);
+    console.log(`Method: ${req.method}`);
+    console.log(`Path: ${req.path}`);
+    console.log(`Content-Type: ${req.headers['content-type']}`);
+    console.log(`Content-Length: ${req.headers['content-length']}`);
+    console.log(`Raw headers:`, JSON.stringify(req.headers, null, 2));
+  }
+  next();
+});
+
 // Configure body parsers with increased limits and detailed error handling
 app.use(express.json({ 
   limit: '1mb',
   strict: true, // Only accept arrays and objects
   verify: (req: Request, res: Response, buf: Buffer) => {
+    if (req.path === '/api/login') {
+      console.log(`JSON body buffer length: ${buf.length}`);
+      console.log(`JSON body raw: ${buf.toString()}`);
+    }
     try {
-      JSON.parse(buf.toString());
+      const parsed = JSON.parse(buf.toString());
+      if (req.path === '/api/login') {
+        console.log(`JSON parsed successfully:`, parsed);
+      }
     } catch (e: any) {
       console.error('Invalid JSON in request body', e);
       res.status(400).send({ 
@@ -41,6 +62,17 @@ app.use(express.urlencoded({
   extended: true,
   limit: '1mb'
 }));
+
+// Add middleware to log parsed body for login requests
+app.use((req: Request, res: Response, next: NextFunction) => {
+  if (req.path === '/api/login') {
+    console.log(`=== AFTER BODY PARSING ===`);
+    console.log(`req.body:`, req.body);
+    console.log(`req.body type:`, typeof req.body);
+    console.log(`req.body keys:`, req.body ? Object.keys(req.body) : 'no keys');
+  }
+  next();
+});
 
 // Check if we're in development mode
 const isDevelopment = app.get("env") === "development";
