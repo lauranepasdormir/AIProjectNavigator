@@ -214,41 +214,17 @@ export function setupAuth(app: Express) {
 
   // Auth routes
   app.post("/api/login", async (req: Request, res: Response, next: NextFunction) => {
-    console.log("Login request received:", { 
-      body: req.body,
-      bodyType: typeof req.body,
-      keys: req.body ? Object.keys(req.body) : [],
-      username: req.body?.username,
-      hasPassword: !!req.body?.password,
-      contentType: req.headers['content-type'],
-      method: req.method,
-      url: req.url
-    });
+    console.log("Login request received for user:", req.body?.username);
     
     // Set no-cache headers
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');
     
-    // Enhanced validation with detailed logging
-    if (!req.body) {
-      console.error("No request body found");
-      return res.status(400).json({ error: "Request body is required" });
-    }
-    
-    if (typeof req.body !== 'object') {
-      console.error("Request body is not an object:", typeof req.body);
-      return res.status(400).json({ error: "Invalid request body format" });
-    }
-    
-    if (!req.body.username) {
-      console.error("Username missing from request body. Body keys:", Object.keys(req.body));
-      return res.status(400).json({ error: "Username is required" });
-    }
-    
-    if (!req.body.password) {
-      console.error("Password missing from request body. Body keys:", Object.keys(req.body));
-      return res.status(400).json({ error: "Password is required" });
+    // Basic validation
+    if (!req.body || !req.body.username || !req.body.password) {
+      console.error("Missing credentials in request");
+      return res.status(400).json({ error: "Username and password are required" });
     }
     
     const { username, password } = req.body;

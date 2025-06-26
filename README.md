@@ -1,141 +1,181 @@
-# Project Showcase Platform
+# AI-Powered Project Showcase Platform
 
-An AI-powered web application for submitting and managing project showcases, featuring an interactive form interface with comprehensive admin controls and advanced editing capabilities.
+A modern web application for submitting and managing project showcases with AI-powered content generation capabilities.
 
 ## Features
 
-- React.js frontend with TypeScript
-- Express.js backend
-- Database-backed storage for project data
-- Responsive footer with admin access link
-- Enhanced markdown editing and preview functionality
-- Refined admin dashboard with visibility management
-- Consistent navigation with footer-based authentication links
+- **Interactive Project Submission**: Comprehensive form for project details with real-time validation
+- **AI Content Generation**: OpenAI integration for draft suggestions and content assistance
+- **Admin Dashboard**: Secure management interface for reviewing and managing submissions
+- **Database Integration**: PostgreSQL with Drizzle ORM for reliable data persistence
+- **Responsive Design**: Modern UI built with React and Tailwind CSS
+- **Session Management**: Secure authentication with PostgreSQL-backed sessions
 
-## Environment Configuration
+## Tech Stack
 
-This project supports both development and production environments with different database connections.
+### Frontend
+- **React 18** with TypeScript
+- **Vite** for fast development and optimized builds
+- **Tailwind CSS** for styling
+- **Radix UI** components for accessibility
+- **TanStack React Query** for server state management
+- **React Hook Form** with Zod validation
 
-### Development Environment
+### Backend
+- **Express.js** with TypeScript
+- **PostgreSQL** with Neon serverless hosting
+- **Drizzle ORM** for database operations
+- **Passport.js** for authentication
+- **OpenAI API** for content generation
 
-The development environment uses a dedicated database for testing and development purposes.
+## Getting Started
 
-### Production Environment
+### Prerequisites
 
-The production environment uses a separate database optimized for production use.
+- Node.js 18 or higher
+- PostgreSQL database (or Neon account)
+- OpenAI API key (optional, for AI features)
 
-### Switching Environments
+### Installation
 
-You can easily switch between development and production environments using the provided scripts:
-
+1. Clone the repository:
 ```bash
-# Switch to development environment
-node scripts/switch-env.js dev
-
-# Switch to production environment
-node scripts/switch-env.js prod
+git clone <your-repo-url>
+cd ai-project-showcase
 ```
 
-You can also switch environments and run migrations in a single step:
-
+2. Install dependencies:
 ```bash
-# Switch to development environment and run migrations
-node scripts/switch-and-migrate.js dev
-
-# Switch to production environment and run migrations
-node scripts/switch-and-migrate.js prod
+npm install
 ```
 
-### Setting Up a New Environment
-
-If you need to set up a new environment or update database connections, use the `set-env.js` script:
-
+3. Set up environment variables:
 ```bash
-# Set up development environment with current DATABASE_URL
-node scripts/set-env.js dev
-
-# Set up production environment with current DATABASE_URL
-node scripts/set-env.js prod
+# Create .env file with your configuration
+DATABASE_URL=your_postgresql_connection_string
+OPENAI_API_KEY=your_openai_api_key
 ```
 
-### Testing Database Connection
-
-You can test the database connection for the current environment using the `test-db-connection.js` script:
-
+4. Set up the database:
 ```bash
-# Test connection to development database
-NODE_ENV=development node scripts/test-db-connection.js
-
-# Test connection to production database
-NODE_ENV=production node scripts/test-db-connection.js
+npm run db:push
 ```
 
-## Database Configuration
-
-The application automatically selects the appropriate database connection based on the current environment:
-
-- In development mode, it uses `DEV_DATABASE_URL` from the .env file
-- In production mode, it uses `PROD_DATABASE_URL` from the .env file
-- If the environment-specific URL is not available, it falls back to `DATABASE_URL`
-
-## Running the Application
-
+5. Start the development server:
 ```bash
-# Start in development mode
 npm run dev
-
-# Build for production
-node scripts/build-for-production.js
-
-# Start in production mode
-NODE_ENV=production tsx server/index.ts
 ```
 
-## Preparing for Deployment
+The application will be available at `http://localhost:5000`
 
-Before deploying the application, make sure to:
+## Environment Variables
 
-1. Build the application for production:
-   ```bash
-   node scripts/build-for-production.js
-   ```
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `DATABASE_URL` | PostgreSQL connection string | Yes |
+| `OPENAI_API_KEY` | OpenAI API key for content generation | No |
+| `NODE_ENV` | Environment (development/production) | No |
 
-2. Verify deployment readiness:
-   ```bash
-   node scripts/verify-deployment-readiness.js
-   ```
+## Available Scripts
 
-3. Ensure your production database is properly configured:
-   ```bash
-   node scripts/set-env.js prod
-   ```
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run db:push` - Push database schema changes
 
-4. Test the production database connection:
-   ```bash
-   NODE_ENV=production node scripts/test-db-connection.js
-   ```
+## Admin Access
 
-## Deploying on Replit
+Default admin credentials:
+- Email: `admin@digitalvillage.com.au`
+- Password: `Password123`
 
-To deploy the application on Replit:
+**Important**: Change these credentials in production by updating the values in `server/auth.ts`
 
-1. Run the deployment readiness verification:
-   ```bash
-   node scripts/verify-deployment-readiness.js
-   ```
+## Project Structure
 
-2. If all tests pass, click the "Deploy" button in the Replit UI.
+```
+├── client/                 # React frontend
+│   ├── src/
+│   │   ├── components/    # Reusable UI components
+│   │   ├── pages/         # Page components
+│   │   ├── hooks/         # Custom React hooks
+│   │   └── lib/           # Utility functions
+├── server/                # Express backend
+│   ├── auth.ts           # Authentication logic
+│   ├── routes.ts         # API routes
+│   ├── db.ts             # Database configuration
+│   └── storage.ts        # Data access layer
+├── shared/               # Shared TypeScript types
+│   └── schema.ts         # Database schema
+└── scripts/              # Utility scripts
+```
 
-3. The deployment process will:
-   - Build the application (using the build script)
-   - Set up the environment
-   - Start the server in production mode
-   - Perform health checks (which will use the root endpoint)
+## API Endpoints
 
-4. Once deployed, your application will be available at your Replit deployment URL.
+### Public Endpoints
+- `GET /api/public-projects` - Get public project submissions
+- `POST /api/project-submissions` - Submit a new project
+- `POST /api/draft-suggestion` - Get AI-generated content suggestions
 
-### Important Deployment Notes
+### Admin Endpoints (Authentication Required)
+- `GET /api/project-submissions` - Get all submissions
+- `DELETE /api/project-submissions/:id` - Delete a submission
+- `POST /api/login` - Admin login
+- `POST /api/logout` - Admin logout
+- `GET /api/me` - Get current user info
 
-- The root endpoint (/) is configured to respond immediately for health checks
-- The actual application is accessible via both / and /app routes in the deployed application
-- The application automatically uses the production database when deployed
+## Database Schema
+
+The application uses two main tables:
+
+### Users
+- `id` - Primary key
+- `username` - Unique username/email
+- `password` - Hashed password
+- `createdAt` - Timestamp
+
+### Project Submissions
+- `id` - Primary key
+- `username` - Submitter name
+- `title` - Project title
+- `description` - Project description
+- `problem` - Problem solved
+- `technology` - Technologies used
+- `impact` - Project impact
+- `team` - Team information
+- `status` - Current status
+- `contact` - Contact information
+- `visibility` - Public/private/internal
+- `createdAt` - Timestamp
+- `userId` - Foreign key to users (optional)
+
+## Deployment
+
+The application is configured for deployment on Replit with autoscaling capabilities. For other platforms:
+
+1. Build the application:
+```bash
+npm run build
+```
+
+2. Set production environment variables
+
+3. Start the production server:
+```bash
+npm start
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support or questions, please create an issue in the GitHub repository.
