@@ -1,6 +1,6 @@
-# AI-Powered Project Showcase Platform
+# Digital Village Member Project Showcase
 
-A modern web application for submitting and managing project showcases with AI-powered content generation capabilities.
+A modern web application for Digital Village members to submit and manage project showcases with AI-powered content generation capabilities.
 
 ## Features
 
@@ -40,8 +40,8 @@ A modern web application for submitting and managing project showcases with AI-p
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
-cd ai-project-showcase
+git clone https://github.com/digitalvillager/DV-Member-Project-Showcase.git
+cd DV-Member-Project-Showcase
 ```
 
 2. Install dependencies:
