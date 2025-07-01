@@ -1,11 +1,11 @@
 import OpenAI from "openai";
+import 'dotenv/config';
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 /**
  * Generate a draft response for a project showcase question
- * 
  * @param question The question to generate a response for
  * @param context Additional context about the project (if available)
  * @returns Generated suggestion for an answer
@@ -34,7 +34,6 @@ export async function generateDraftResponse(question: string, context?: Record<s
         }
       });
     }
-
     const prompt = `
 You are a helpful assistant for an AI project showcase platform. The user is filling out a form about their project.
 

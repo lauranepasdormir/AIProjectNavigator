@@ -65,6 +65,7 @@ export function setupAuth(app: Express) {
         existingAdmin = await storage.getUserByUsername(ADMIN_USERNAME);
       }
       
+      console.log("password running for user found:", ADMIN_PASSWORD);
       const hashedPassword = await hashPassword(ADMIN_PASSWORD);
       
       if (!existingAdmin) {
