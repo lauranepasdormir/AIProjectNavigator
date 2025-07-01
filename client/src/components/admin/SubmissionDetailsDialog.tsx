@@ -106,7 +106,7 @@ export default function SubmissionDetailsDialog({
                 <Download className="h-4 w-4" />
                 Download Markdown
               </Button>
-              <Button onClick={onClose}>
+              <Button size="sm" onClick={onClose}>
                 Close
               </Button>
             </div>
