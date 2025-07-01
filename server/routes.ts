@@ -34,7 +34,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Setup authentication
-  // const { isAuthenticated } = setupAuth(app);
+  const { isAuthenticated } = setupAuth(app);
   
   // Setup direct project submissions endpoint without authentication
   setupNoAuthProjectSubmissions(app, pool);
