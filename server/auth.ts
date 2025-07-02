@@ -1,11 +1,12 @@
+// auth.ts
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { Express, Request, Response, NextFunction } from "express";
 import session from "express-session";
-import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { Express, Request, Response, NextFunction } from "express";
+import { scrypt as _scrypt, randomBytes as _randomBytes } from "crypto";
 import { promisify } from "util";
+import { pool } from "./db";
 import { storage } from "./storage";
-import { pool } from "./db"; 
 import { User as SelectUser } from "@shared/schema";
 
 declare global {
@@ -14,334 +15,193 @@ declare global {
   }
 }
 
-const scryptAsync = promisify(scrypt);
+const scrypt = promisify(_scrypt);
+const randomBytes = promisify(_randomBytes);
 
-async function hashPassword(password: string) {
-  const salt = randomBytes(16).toString("hex");
-  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
-  return `${buf.toString("hex")}.${salt}`;
+// Toggle detailed logging with `DEBUG_AUTH=true`
+const DEBUG = process.env.DEBUG_AUTH === "true";
+function log(...args: any[]) { if (DEBUG) console.log("[auth]", ...args); }
+function logErr(...args: any[]) { if (DEBUG) console.error("[auth]", ...args); }
+
+// Hard-coded admin credentials
+const ADMIN_USERNAME = "admin@digitalvillage.com.au";
+const ADMIN_PASSWORD = "Password123";
+
+// Cache for admin password hash
+let cachedAdminHash: string | null = null;
+async function getAdminHash() : Promise<string> {
+  if (cachedAdminHash) return cachedAdminHash;
+  if (process.env.ADMIN_PASSWORD_HASH) {
+    cachedAdminHash = process.env.ADMIN_PASSWORD_HASH;
+  } else {
+    const salt = (await randomBytes(16)).toString("hex");
+    const buf = (await scrypt(ADMIN_PASSWORD, salt, 64)) as Buffer;
+    cachedAdminHash = `${buf.toString("hex")}.${salt}`;
+  }
+  log("Admin hash ready");
+  return cachedAdminHash;
 }
 
-async function comparePasswords(supplied: string, stored: string) {
-  const [hashed, salt] = stored.split(".");
-  const hashedBuf = Buffer.from(hashed, "hex");
-  const suppliedBuf = (await scryptAsync(supplied, salt, 64)) as Buffer;
-  return timingSafeEqual(hashedBuf, suppliedBuf);
+// Compare a plaintext password to a stored hash
+async function comparePasswords(plain: string, stored: string) {
+  const [hashHex, salt] = stored.split(".");
+  const buf = (await scrypt(plain, salt, 64)) as Buffer;
+  return Buffer.from(hashHex, "hex").equals(buf);
 }
-
-// Hardcoded admin credentials for the MVP
-const ADMIN_EMAIL = "admin@digitalvillage.com.au";
-const ADMIN_USERNAME = "admin@digitalvillage.com.au";  // Using email as username
-const ADMIN_PASSWORD = "Password123";  // Updated password - must match the one we set in database
 
 export function setupAuth(app: Express) {
-  const sessionSettings: session.SessionOptions = {
+  // ————————————————————————
+  // Session middleware (unchanged store)
+  app.use(session({
     secret: process.env.SESSION_SECRET || "digital-village-secret",
     resave: true,
     saveUninitialized: true,
-    cookie: { 
-      secure: false, // Set to false for development, even in production we're likely using HTTP
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    cookie: {
+      secure: false,
       httpOnly: true,
-      sameSite: 'lax'
+      sameSite: "lax",
+      maxAge: 24 * 60 * 60 * 1000,
     },
-    store: storage.sessionStore // Use the session store from storage.ts
-  };
-
-  app.use(session(sessionSettings));
+    store: storage.sessionStore,
+  }));
   app.use(passport.initialize());
   app.use(passport.session());
 
-  // Create or update the admin user in the database
-  async function ensureAdminExists() {
+  // ————————————————————————
+  // Ensure Admin user, but only hash/update if needed
+  (async function ensureAdminExists() {
     try {
-      console.log("Checking for admin user...");
-      
-      // Try to find admin by email
-      let existingAdmin = await storage.getUserByUsername(ADMIN_EMAIL);
-      
-      // Also try to find admin by 'admin' username
-      if (!existingAdmin) {
-        existingAdmin = await storage.getUserByUsername(ADMIN_USERNAME);
-      }
-      
-      console.log("password running for user found:", ADMIN_PASSWORD);
-      const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-      
-      if (!existingAdmin) {
-        // Create admin user if doesn't exist
-        console.log("Creating new admin user...");
-        
-        // First try with admin username
-        try {
-          await storage.createUser({
-            username: ADMIN_USERNAME,
-            password: hashedPassword
-          });
-          console.log("Admin user created with username: admin");
-        } catch (adminCreateError) {
-          console.error("Error creating admin user with username admin:", adminCreateError);
-          
-          // Try with email as fallback
-          try {
-            await storage.createUser({
-              username: ADMIN_EMAIL,
-              password: hashedPassword
-            });
-            console.log("Admin user created with email");
-          } catch (emailCreateError) {
-            console.error("Error creating admin user with email:", emailCreateError);
-          }
-        }
+      log("Checking for admin user...");
+      const user = await storage.getUserByUsername(ADMIN_USERNAME);
+      if (!user) {
+        log("Admin not found, creating...");
+        const hash = await getAdminHash();
+        await storage.createUser({ username: ADMIN_USERNAME, password: hash });
+        log("Admin created");
       } else {
-        // Use direct SQL to update the admin password
-        console.log("Admin user found, updating password...");
-        try {
+        // Only update if the stored hash no longer matches
+        const valid = await comparePasswords(ADMIN_PASSWORD, user.password);
+        if (!valid) {
+          log("Admin password changed — updating DB");
+          const hash = await getAdminHash();
           const client = await pool.connect();
           try {
             await client.query(
-              'UPDATE users SET password = $1 WHERE username = $2 OR username = $3',
-              [hashedPassword, ADMIN_EMAIL, ADMIN_USERNAME]
+              `UPDATE users SET password=$1 WHERE username=$2`,
+              [hash, ADMIN_USERNAME]
             );
-            console.log("Admin password updated successfully");
+            log("Admin password updated");
           } finally {
             client.release();
           }
-        } catch (updateError) {
-          console.error("Error updating admin password:", updateError);
+        } else {
+          log("Admin password up-to-date");
         }
       }
-    } catch (error) {
-      console.error("Error ensuring admin exists:", error);
+    } catch (err) {
+      logErr("ensureAdminExists error:", err);
     }
-  }
+  })();
 
-  // Call this when setting up the auth
-  ensureAdminExists();
-
-  passport.use(
-    new LocalStrategy(
-      {
-        usernameField: 'username',
-        passwordField: 'password',
-      },
-      async (username, password, done) => {
-        try {
-          console.log(`Login attempt for username: ${username}`);
-          
-          // First try using username as-is
-          let user = await storage.getUserByUsername(username);
-          
-          // If not found, check if they're using 'admin' instead of the email
-          if (!user && username === 'admin') {
-            console.log('Checking for admin email account instead of "admin"');
-            user = await storage.getUserByUsername(ADMIN_EMAIL);
-          }
-          
-          if (!user) {
-            console.log(`User not found: ${username}`);
-            return done(null, false, { message: "Invalid credentials" });
-          }
-
-          console.log(`User found, checking password for: ${user.username}`);
-          const isValid = await comparePasswords(password, user.password);
-          if (!isValid) {
-            console.log(`Invalid password for user: ${username}`);
-            return done(null, false, { message: "Invalid credentials" });
-          }
-
-          console.log(`Login successful for: ${user.username}`);
-          return done(null, user);
-        } catch (error) {
-          console.error('Authentication error:', error);
-          return done(error);
+  // ————————————————————————
+  // Passport Local Strategy (unchanged logic)
+  passport.use(new LocalStrategy(
+    { usernameField: "username", passwordField: "password" },
+    async (username, password, done) => {
+      try {
+        log(`Login attempt: ${username}`);
+        let user = await storage.getUserByUsername(username);
+        if (!user && username === "admin") {
+          log("Fallback to admin lookup");
+          user = await storage.getUserByUsername(ADMIN_USERNAME);
         }
+        if (!user) {
+          log("User not found");
+          return done(null, false, { message: "Invalid credentials" });
+        }
+        const ok = await comparePasswords(password, user.password);
+        if (!ok) {
+          log("Bad password");
+          return done(null, false, { message: "Invalid credentials" });
+        }
+        log("Auth success");
+        return done(null, user);
+      } catch (err) {
+        logErr("Auth strategy error:", err);
+        return done(err);
       }
-    )
-  );
+    }
+  ));
 
-  passport.serializeUser((user, done) => {
-    done(null, user.id);
-  });
-
+  passport.serializeUser((user, done) => done(null, user.id));
   passport.deserializeUser(async (id: number, done) => {
     try {
       const user = await storage.getUser(id);
       done(null, user);
-    } catch (error) {
-      done(error);
+    } catch (err) {
+      done(err);
     }
   });
 
-  // Authentication middleware
+  // ————————————————————————
+  // Middleware to protect API routes
   function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-    // Add debugging info
-    console.log('Authentication check:');
-    console.log(`- isAuthenticated: ${req.isAuthenticated()}`);
-    console.log(`- Session ID: ${req.sessionID}`);
-    console.log(`- Session data:`, req.session);
-    console.log(`- User data:`, req.user || 'No user');
-    
-    // Always allow OPTIONS requests to pass through for CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      console.log('OPTIONS request detected, allowing through for CORS');
-      return next();
-    }
-    
-    if (req.isAuthenticated()) {
-      console.log('User is authenticated, proceeding...');
-      return next();
-    }
-    
-    // Special case for paths where authentication is needed but we should return nicely formatted errors
-    if (req.path.startsWith('/api/')) {
-      console.log('User is NOT authenticated on API endpoint, returning 401');
-      
-      // Set appropriate headers to prevent caching of unauthorized responses
-      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-      res.setHeader('Pragma', 'no-cache');
-      res.setHeader('Expires', '0');
-      
-      return res.status(401).json({ 
-        error: 'Not authenticated',
-        message: 'Please log in to access this resource',
-        path: req.path
-      });
-    }
-    
-    console.log('User is NOT authenticated, returning 401');
-    res.status(401).json({ error: 'Unauthorized' });
+    if (req.method === "OPTIONS") return next();
+    if (req.isAuthenticated()) return next();
+
+    log("Unauthorized:", req.method, req.originalUrl);
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    return res.status(401).json({ error: "Not authenticated" });
   }
 
-  // Auth routes
-  app.post("/api/login", async (req: Request, res: Response, next: NextFunction) => {
-    console.log("Login request received for user:", req.body?.username);
-    
-    // Set no-cache headers
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
-    
-    // Basic validation
-    if (!req.body || !req.body.username || !req.body.password) {
-      console.error("Missing credentials in request");
-      return res.status(400).json({ error: "Username and password are required" });
+  // Expose it for your routes.ts to use:
+  // app.get("/api/secure-endpoint", isAuthenticated, handler)
+  // /api/me, /api/project-submissions/:id, etc.
+
+  // ————————————————————————
+  // API login endpoint
+  app.post("/api/login", (req: Request, res: Response, next: NextFunction) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    interface AuthInfo {
+      message?: string;
     }
-    
-    const { username, password } = req.body;
-    
-    try {
-      console.log(`Attempting login for user: ${username} (session: ${req.sessionID})`);
-      
-      // Admin override - hard-coded credentials
-      if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-        console.log("Admin credentials match, proceeding with admin login");
-        
-        // Find or create admin user
-        let adminUser = await storage.getUserByUsername(ADMIN_USERNAME);
-        
-        if (!adminUser) {
-          console.log("Admin user not found, creating user in database");
-          const hashedPassword = await hashPassword(ADMIN_PASSWORD);
-          adminUser = await storage.createUser({
-            username: ADMIN_USERNAME,
-            password: hashedPassword
-          });
-          console.log("Admin user created:", adminUser.id);
-        }
-        
-        // Manual login - directly add user to session
-        console.log("Manually logging in admin user to session");
-        
-        // Create a new promise for req.login
-        await new Promise<void>((resolve, reject) => {
-          req.login(adminUser, (err) => {
-            if (err) {
-              console.error("Login error:", err);
-              reject(err);
-              return;
-            }
-            resolve();
-          });
-        });
-        
-        // Verify session is established
-        console.log("Session after login:");
-        console.log(`- Is authenticated: ${req.isAuthenticated()}`);
-        console.log(`- Session ID: ${req.sessionID}`);
-        console.log(`- User: ${req.user ? 'Present' : 'Missing'}`);
-        
-        // Save session explicitly
-        await new Promise<void>((resolve, reject) => {
-          req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              reject(err);
-              return;
-            }
-            console.log("Session explicitly saved");
-            resolve();
-          });
-        });
-        
-        // Return success
-        return res.status(200).json({
-          id: adminUser.id,
-          username: adminUser.username,
-          success: true,
-          message: "Admin login successful"
-        });
+
+    interface LoginResponse {
+      id: number;
+      username: string;
+      success: boolean;
+      message: string;
+    }
+
+    passport.authenticate(
+      "local",
+      (
+      err: any,
+      user: Express.User | false,
+      info: AuthInfo | undefined
+      ) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid credentials" });
       }
-      
-      // Non-admin user authentication
-      console.log("Not using admin credentials, authenticating with regular flow");
-      passport.authenticate("local", (err: Error, user: Express.User, info: { message: string }) => {
-        if (err) {
-          console.error("Authentication error:", err);
-          return next(err);
-        }
-        
-        if (!user) {
-          console.log("Authentication failed:", info.message);
-          return res.status(401).json({ error: "Invalid credentials" });
-        }
-        
-        req.login(user, (err) => {
-          if (err) {
-            console.error("Login session error:", err);
-            return next(err);
-          }
-          
-          // Save session explicitly
-          req.session.save((err) => {
-            if (err) {
-              console.error("Session save error:", err);
-              return next(err);
-            }
-            
-            console.log(`User logged in: ${user.username}`);
-            console.log(`- Session ID: ${req.sessionID}`);
-            console.log(`- Is authenticated: ${req.isAuthenticated()}`);
-            
-            return res.status(200).json({
-              id: user.id,
-              username: user.username,
-              success: true,
-              message: "Login successful" 
-            });
-          });
+      req.login(user, (err: any) => {
+        if (err) return next(err);
+        req.session.save((err: any) => {
+        if (err) return next(err);
+        const response: LoginResponse = {
+          id: user.id,
+          username: user.username,
+          success: true,
+          message: "Login successful"
+        };
+        return res.json(response);
         });
-      })(req, res, next);
-      
-    } catch (error) {
-      console.error("Login error:", error);
-      return res.status(500).json({ 
-        error: "Login failed", 
-        message: error instanceof Error ? error.message : "Unknown error" 
       });
-    }
+      }
+    )(req, res, next);
   });
 
+  // API logout endpoint
   app.post("/api/logout", (req: Request, res: Response) => {
     req.logout((err) => {
       if (err) {
@@ -351,31 +211,22 @@ export function setupAuth(app: Express) {
     });
   });
 
+  // API /me endpoint
   app.get("/api/me", (req: Request, res: Response) => {
-    console.log('API /me endpoint:');
-    console.log(`- isAuthenticated: ${req.isAuthenticated()}`);
-    console.log(`- Session ID: ${req.sessionID}`);
-    console.log(`- Session data:`, req.session);
-    console.log(`- User data:`, req.user || 'No user');
-    
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     if (!req.isAuthenticated()) {
-      console.log('User is NOT authenticated on /api/me endpoint');
       return res.status(401).json({ error: "Not authenticated" });
     }
-    
     const user = req.user as Express.User;
-    console.log(`User is authenticated as ${user.username} (ID: ${user.id})`);
-    
-    // Set cache control headers to prevent caching
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    res.setHeader('Pragma', 'no-cache');
-    
-    res.json({
-      id: user.id,
-      username: user.username
-    });
+    res.json({ id: user.id, username: user.username });
   });
 
-  // Return the middleware for use in routes
+  // // ————————————————————————
+  // // Catch-all for any other `/api/*` route: JSON 404 instead of HTML
+  // app.use("/api", (req, res) => {
+  //   res.status(404).json({ error: "API endpoint not found" });
+  // });
+
+  // Return the middleware so your routes.ts can destructure { isAuthenticated }
   return { isAuthenticated };
 }
