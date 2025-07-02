@@ -1,3 +1,4 @@
+01/07/2025
 ## server/vite.ts
 import compression from "compression";
 app.use(compression());
@@ -61,3 +62,8 @@ mode: "jit",
     "./client/src/**/*.{js,jsx,ts,tsx}",
     "./shared/**/*.{js,ts}",
   ],
+## update ADminPanel to bbe seperate pieces for future component load.
+
+02/07/2025
+## update auth.ts (reudce reduntant calls,...)
+

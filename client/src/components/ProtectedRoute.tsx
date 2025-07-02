@@ -1,7 +1,9 @@
-import { useAuth } from "@/hooks/use-auth";
-import { Loader2 } from "lucide-react";
+// src/components/ProtectedRoute.tsx
+import React, { useState, useEffect } from "react";
 import { Route, Redirect, useLocation } from "wouter";
-import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import SetupPage from "@/pages/SetupPage";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ProtectedRouteProps {
   path: string;
@@ -9,68 +11,96 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ path, component: Component }: ProtectedRouteProps) {
-  const { isAuthenticated, isLoading } = useAuth();
-  const [isChecking, setIsChecking] = useState(true);
-  const [isAuthorized, setIsAuthorized] = useState(false);
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
 
-  // Enhanced protection strategy - check the /api/me endpoint directly
+  // 1) track setup-status just like in App.tsx
+  const [setupReady, setSetupReady] = useState<boolean | null>(null);
   useEffect(() => {
-    async function checkAuth() {
+    let id: number;
+    const check = async () => {
       try {
-        console.log("ProtectedRoute: Checking authentication directly...");
-        const response = await fetch("/api/me", {
-          credentials: "include",
-          headers: {
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache"
-          }
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          console.log("ProtectedRoute: Authentication confirmed:", userData);
-          setIsAuthorized(true);
-        } else {
-          console.log("ProtectedRoute: Not authenticated");
-          setIsAuthorized(false);
-          // Add a slight delay before redirecting
-          setTimeout(() => {
-            setLocation("/login");
-          }, 100);
+        const res = await fetch("/api/setup-status");
+        const { ready } = await res.json();
+        if (ready) {
+          setSetupReady(true);
+          window.clearInterval(id);
+        } else if (setupReady === null) {
+          setSetupReady(false);
         }
-      } catch (error) {
-        console.error("ProtectedRoute: Auth check error:", error);
-        setIsAuthorized(false);
-      } finally {
-        setIsChecking(false);
+      } catch {
+        if (setupReady === null) setSetupReady(false);
       }
+    };
+    check();
+    id = window.setInterval(check, 1000);
+    return () => window.clearInterval(id);
+  }, [setupReady]);
+
+  // 2) enhanced auth check state
+  const [checking, setChecking] = useState(true);
+  const [authorized, setAuthorized] = useState(false);
+
+  useEffect(() => {
+    if (setupReady === false) {
+      // still setting up: skip auth check
+      return;
     }
-    
-    // Only check if we don't already know from the auth context
+    // only run auth check once setup is ready
+    const doCheck = async () => {
+      try {
+        const res = await fetch("/api/me", {
+          credentials: "include",
+          headers: { "Cache-Control": "no-cache" }
+        });
+        if (res.ok) {
+          setAuthorized(true);
+        } else {
+          setAuthorized(false);
+          // small delay before redirect
+          setTimeout(() => setLocation("/login"), 100);
+        }
+      } catch {
+        setAuthorized(false);
+      } finally {
+        setChecking(false);
+      }
+    };
+
     if (isAuthenticated) {
-      console.log("ProtectedRoute: Already authenticated via context");
-      setIsAuthorized(true);
-      setIsChecking(false);
-    } else if (!isLoading) {
-      checkAuth();
+      setAuthorized(true);
+      setChecking(false);
+    } else if (!authLoading && setupReady) {
+      doCheck();
     }
-  }, [isAuthenticated, isLoading, setLocation]);
+  }, [isAuthenticated, authLoading, setupReady, setLocation]);
 
-  // Use combined loading state
-  const showLoading = isLoading || isChecking;
+  // 3) render logic
+  // a) still waiting on setup-status?
+  if (setupReady === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  // b) setup in progress → show SetupPage
+  if (!setupReady) {
+    return <SetupPage />;
+  }
+  // c) setup done but still checking auth
+  if (authLoading || checking) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
+  // d) finally, if authorized render the component, else redirect
   return (
     <Route path={path}>
-      {showLoading ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      ) : isAuthorized ? (
-        <Component />
-      ) : (
-        <Redirect to="/login" />
-      )}
+      {authorized ? <Component /> : <Redirect to="/login" />}
     </Route>
   );
 }

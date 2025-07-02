@@ -9,6 +9,10 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import SearchFilterBar from "@/components/admin/SearchFilterBar";
 import SubmissionTable from "@/components/admin/SubmissionTable";
 
+
+
+import SetupPage from "@/pages/SetupPage";
+
 // Lazy-load dialog components
 const SubmissionDetailsDialog = React.lazy(() => import("@/components/admin/SubmissionDetailsDialog"));
 const DeleteConfirmationDialog = React.lazy(() => import("@/components/admin/DeleteConfirmationDialog"));

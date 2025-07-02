@@ -4,7 +4,7 @@ import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
 import { generateDraftResponse } from "./openai";
-import { setupAuth } from "./auth";
+import { setupAuth, isAuthReady } from "./auth";
 import { pool } from "./db";
 import { setupNoAuthProjectSubmissions } from "./disable-auth-for-submissions";
 
@@ -35,6 +35,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup authentication
   const { isAuthenticated } = setupAuth(app);
+
+  app.get("/api/setup-status", (_req: Request, res: Response) => {
+    res.json({ ready: isAuthReady() });
+  });
   
   // Setup direct project submissions endpoint without authentication
   setupNoAuthProjectSubmissions(app, pool);
@@ -410,6 +414,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
+  });
+  // 5) Final catch-all for unknown API routes
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "API endpoint not found" });
   });
 
   const httpServer = createServer(app);

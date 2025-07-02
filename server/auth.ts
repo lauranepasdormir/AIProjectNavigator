@@ -15,6 +15,13 @@ declare global {
   }
 }
 
+let authReady = false;
+
+export function isAuthReady() {
+  return authReady;
+}
+
+
 const scrypt = promisify(_scrypt);
 const randomBytes = promisify(_randomBytes);
 
@@ -100,6 +107,10 @@ export function setupAuth(app: Express) {
       }
     } catch (err) {
       logErr("ensureAdminExists error:", err);
+    }
+      finally {
+      authReady = true;
+      log("Auth setup complete");
     }
   })();
 
