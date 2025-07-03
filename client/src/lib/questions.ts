@@ -57,7 +57,7 @@ export const questions: Question[] = [
     placeholder: "e.g., Concept, In development, Prototype, etc.",
     type: "dropdown",
     options: [
-      { value: 'Work In Progress', label: 'WIP' },
+      { value: 'Work in progress', label: 'Work in progress' },
       { value: 'Completed', label: 'Completed' }
     ]
   }

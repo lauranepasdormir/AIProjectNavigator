@@ -556,6 +556,29 @@ export default function ChatForm() {
             )}
             
             {onboardingStage === 'questions' && !isPreviewMode && (
+              currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion].type === "dropdown" ? (
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    const value = (e.target as any).elements[0].value;
+                    handleSubmit(value);
+                  }}
+                  className="border-t p-2 sm:p-3 bg-white flex flex-col gap-2"
+                >
+
+                  <select required={questions[currentQuestion].required} className="border rounded px-2 py-1">
+                    <option value="">Select status</option>
+                    {questions[currentQuestion].options?.map(option =>
+                      typeof option === "string" ? (
+                        <option key={option} value={option}>{option}</option>
+                      ) : (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      )
+                    )}
+                  </select>
+                  <button type="submit" className="mt-2 px-4 py-2 bg-primary text-white rounded">Next</button>
+                </form>
+              ) : (
               <ChatInput 
                 placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
                 onSubmit={handleSubmit}
@@ -576,6 +599,7 @@ export default function ChatForm() {
                 isSaved={isSaved}
                 isSaving={submitProjectMutation.isPending}
               />
+              )
             )}
             
             {/* Input area for preview mode */}
