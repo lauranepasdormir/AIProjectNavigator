@@ -67,7 +67,7 @@ export function setupAuth(app: Express) {
       secure: false,
       httpOnly: true,
       sameSite: "lax",
-      maxAge: 24 * 60 * 60 * 1000,
+      maxAge: 18 * 60 * 60 * 1000,
     },
     store: storage.sessionStore,
   }));
@@ -232,11 +232,7 @@ export function setupAuth(app: Express) {
     res.json({ id: user.id, username: user.username });
   });
 
-  // // ————————————————————————
-  // // Catch-all for any other `/api/*` route: JSON 404 instead of HTML
-  // app.use("/api", (req, res) => {
-  //   res.status(404).json({ error: "API endpoint not found" });
-  // });
+  
 
   // Return the middleware so your routes.ts can destructure { isAuthenticated }
   return { isAuthenticated };

@@ -434,7 +434,7 @@ export default function ChatForm() {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex justify-center items-center py-2 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
+      <div className="flex justify-center items-center py-10 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
         <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Form Header */}
           <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center justify-between shadow-md">
@@ -465,7 +465,7 @@ export default function ChatForm() {
           ) : (
             <div 
               ref={chatAreaRef}
-              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh]"
+              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh] "
             >
               {messages.map(message => (
                 <ChatBubble 
