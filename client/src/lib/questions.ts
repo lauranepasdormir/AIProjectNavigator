@@ -3,6 +3,8 @@ export interface Question {
   text: string;
   required: boolean;
   placeholder: string;
+  type?: 'text' | 'dropdown';
+  options?: { value: string; label: string }[];
 }
 
 export const questions: Question[] = [
@@ -52,6 +54,11 @@ export const questions: Question[] = [
     id: 'status',
     text: "What's the current status of your project?",
     required: true,
-    placeholder: "e.g., Concept, In development, Prototype, etc."
+    placeholder: "e.g., Concept, In development, Prototype, etc.",
+    type: "dropdown",
+    options: [
+      { value: 'Work In Progress', label: 'WIP' },
+      { value: 'Completed', label: 'Completed' }
+    ]
   }
 ];
