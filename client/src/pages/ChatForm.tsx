@@ -434,7 +434,7 @@ export default function ChatForm() {
   
   return (
     <div className="flex flex-col min-h-screen">
-      <div className="flex justify-center items-center py-2 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
+      <div className="flex justify-center items-center py-10 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
         <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
           {/* Form Header */}
           <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center justify-between shadow-md">
@@ -581,8 +581,6 @@ export default function ChatForm() {
               ) : (
               <ChatInput 
                 placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
-                onSubmit={handleSubmit}
-                isComplete={isComplete}
                 onShowPreview={
                   currentQuestion >= questions.length
                     ? () => {
@@ -592,6 +590,8 @@ export default function ChatForm() {
                       }
                     : undefined
                 }
+                onSubmit={handleSubmit}
+                isComplete={isComplete}
                 onDownload={handleDownload}
                 onSave={handleSaveToDatabase}
                 onBackToChat={handleBackToChat}
