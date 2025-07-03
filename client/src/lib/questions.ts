@@ -53,11 +53,5 @@ export const questions: Question[] = [
     text: "What's the current status of your project?",
     required: true,
     placeholder: "e.g., Concept, In development, Prototype, etc."
-  },
-  {
-    id: 'contact',
-    text: "What's the best way to contact you about this project?",
-    required: true,
-    placeholder: "Email, LinkedIn, Twitter, etc."
   }
 ];
