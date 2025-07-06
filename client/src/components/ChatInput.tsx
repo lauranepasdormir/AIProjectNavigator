@@ -139,7 +139,7 @@ export function ChatInput({
   
   if (isPreviewMode) {
     return (
-      <div className="border-t p-1 sm:p-4 bg-white flex flex-col justify-end shadow-inner gap-3 w-full">
+      <div className="border-t p-3 sm:p-4 bg-white flex flex-col justify-end shadow-inner gap-3 w-full">
         <Button
           variant="outline"
           onClick={onBackToChat}
@@ -152,7 +152,7 @@ export function ChatInput({
   
   if (isComplete) {
     return (
-      <div className="border-t p-1 sm:p-4 bg-white shadow-inner">
+      <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
         <p className="text-center text-gray-700 mb-3 text-sm sm:text-base">You've completed all questions!</p>
         <div className="flex justify-center">
           <Button
