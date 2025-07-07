@@ -370,47 +370,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a project submission - using direct access pattern
-  app.delete('/api/project-submissions/:id', async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid ID format' });
-      }
+app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
+  try {
+    console.log("Received draft suggestion request");
+    const { question, evalCriteria, context } = req.body;
 
-      // Use direct SQL for better reliability
-      const client = await pool.connect();
-      try {
-        // First check if the submission exists
-        console.log(`Checking if project submission ID ${id} exists...`);
-        const checkResult = await client.query(`
-          SELECT id FROM project_submissions WHERE id = $1
-        `, [id]);
-        
-        if (checkResult.rowCount === 0) {
-          return res.status(404).json({ error: 'Project submission not found' });
-        }
-        
-        // Delete the submission directly with SQL
-        console.log(`Deleting project submission ID ${id}...`);
-        const deleteResult = await client.query(`
-          DELETE FROM project_submissions WHERE id = $1
-        `, [id]);
-        
-        console.log(`Successfully deleted project submission ID ${id}`);
-        res.status(200).json({ success: true });
-      } finally {
-        client.release();
-      }
-    } catch (error) {
-      console.error('Error deleting project submission:', error);
-      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-      res.status(500).json({ 
-        error: 'Failed to delete project submission',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+    console.log("Draft request question:", question);
+    console.log("Draft request evalCriteria:", evalCriteria);
+    console.log("Draft request context:", context ? Object.keys(context) : "no context");
+
+    if (!question || typeof question !== 'string') {
+      console.error("Invalid question format");
+      return res.status(400).json({ error: 'Question is required' });
     }
-  });
+    if (!evalCriteria || typeof evalCriteria !== 'string') {
+      console.error("Invalid evalCriteria format");
+      return res.status(400).json({ error: 'Evaluation criteria is required' });
+    }
+
+    console.log("Calling OpenAI generateDraftResponse...");
+    const suggestion = await generateDraftResponse(question, evalCriteria, context);
+    console.log("Draft suggestion generated successfully");
+
+    res.json({ suggestion });
+  } catch (error) {
+    console.error('Error generating draft suggestion:', error);
+
+    let errorMessage = 'Failed to generate draft suggestion';
+    let errorDetails = 'Unknown error';
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || 'No stack trace';
+    }
+
+    res.status(500).json({ 
+      error: errorMessage,
+      details: errorDetails
+    });
+  }
+});
 
   const httpServer = createServer(app);
   return httpServer;

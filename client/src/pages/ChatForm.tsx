@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { ToyBrick, Database, Download, Link2, Clock } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
 import { questions } from "@/lib/questions";
+import { evalCriteria } from "@/lib/evalCriteria";
 import { generateMarkdown, formatMarkdownToHtml, downloadMarkdown } from "@/lib/markdown";
 import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -18,6 +19,7 @@ export default function ChatForm() {
   // State management
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(-1); // Start with -1 to show intro first
+  const [currentCriteria, setCurrentCriteria] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
@@ -38,6 +40,7 @@ export default function ChatForm() {
       setAnswers({});
       setMessages([]);
       setCurrentQuestion(-1);
+      setCurrentCriteria(0);
       setIsPreviewMode(false);
       setPreviewViewMode('edit');
       setIsSaved(false);
@@ -99,11 +102,11 @@ export default function ChatForm() {
   
   // Mutation to generate draft responses
   const generateDraftMutation = useMutation({
-    mutationFn: async ({ question, context }: { question: string; context: Record<string, string> }) => {
+    mutationFn: async ({ question, evalCriteria, context }: { question: string; evalCriteria: string, context: Record<string, string> }) => {
       const response = await apiRequest(
         '/api/draft-suggestion',
         'POST',
-        { question, context }
+        { question, evalCriteria, context }
       );
       return response.json();
     },
@@ -261,6 +264,7 @@ export default function ChatForm() {
       
       // Move to next question
       setCurrentQuestion(prev => prev + 1);
+      setCurrentCriteria(prev => prev + 1);
       
       // If there are more questions, show the next one
       if (currentQuestion + 1 < questions.length) {
@@ -280,6 +284,7 @@ export default function ChatForm() {
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
+      setCurrentCriteria(prev => prev - 1);
       addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
     }
   };
@@ -301,6 +306,7 @@ export default function ChatForm() {
       }
       
       setCurrentQuestion(prev => prev + 1);
+      setCurrentCriteria(prev => prev + 1);
       
       if (currentQuestion + 1 < questions.length) {
         setTimeout(() => {
@@ -415,18 +421,24 @@ export default function ChatForm() {
   
   // Handle draft generation request
   const handleDraftRequest = (question: string) => {
-    // Save the question content to track which question is being processed
-    setGeneratingDraftForQuestion(question);
-    
-    // Debug log to see what context is being sent
-    console.log("Sending draft request with context:", JSON.stringify(answers, null, 2));
-    
-    // Generate the draft using the OpenAI API
-    generateDraftMutation.mutate({
-      question,
-      context: answers // Pass the current answers as context
-    });
-  };
+  setGeneratingDraftForQuestion(question);
+
+  // Find the criteria object that matches the current question's id
+  const questionId = questions[currentQuestion]?.id;
+  const criteriaObj = evalCriteria.find(c => c.question === questionId);
+
+  // Use the .text property if found, otherwise fallback to empty string
+  const criteriaText = criteriaObj?.text || "";
+
+  console.log("Sending draft request with context:", JSON.stringify(answers, null, 2));
+  console.log("Sending evalCriteria:", criteriaText);
+
+  generateDraftMutation.mutate({
+    question,
+    evalCriteria: criteriaText,
+    context: answers
+  });
+};
   
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);

@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-
+import {evalDict} from "@/lib/evalDict";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -10,7 +10,7 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  * @param context Additional context about the project (if available)
  * @returns Generated suggestion for an answer
  */
-export async function generateDraftResponse(question: string, context?: Record<string, string>): Promise<string> {
+export async function generateDraftResponse(question: string, evalCriteria: string, context?: Record<string, string>): Promise<string> {
   try {
     // Validate API key is available
     if (!process.env.OPENAI_API_KEY) {
@@ -24,19 +24,19 @@ export async function generateDraftResponse(question: string, context?: Record<s
     let contextString = "";
     if (context && Object.keys(context).length > 0) {
       contextString = "Here's some context about the project:\n\n";
-      
-      console.log("Full context object for draft generation:", JSON.stringify(context, null, 2));
-      
       Object.entries(context).forEach(([key, value]) => {
         if (value && value.trim()) {
           contextString += `${key}: ${value}\n`;
-          console.log(`Context key-value pair: ${key} = ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
         }
       });
     }
-
+const criteria = evalDict[question];
+    // Build the prompt including the evaluation criteria
     const prompt = `
 You are a helpful assistant for an AI project showcase platform. The user is filling out a form about their project.
+
+Evaluation Criteria:
+${criteria}
 
 Generate a suggested answer for the following question:
 "${question}"
@@ -48,7 +48,7 @@ Limit your response to 3-4 sentences maximum, focusing on the most important asp
 `;
 
     console.log("Calling OpenAI API...");
-    
+    console.log("Using evaluation criteria:", criteria); // Should print the text, not [object Object]    
     try {
       // First attempt with gpt-4o model
       const response = await openai.chat.completions.create({
