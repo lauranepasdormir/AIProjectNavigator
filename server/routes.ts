@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
-import { generateDraftResponse } from "./openai";
+import { generateDraftResponse, generateAnswerSuggestion } from "./openai";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
 import { setupNoAuthProjectSubmissions } from "./disable-auth-for-submissions";
@@ -41,7 +41,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Project Submission Routes
   // Admin route - temporarily bypass authentication for debugging
-  app.get('/api/project-submissions', async (req: Request, res: Response) => {
+  app.get('Invalid project submiss', async (req: Request, res: Response) => {
     // Log authentication status but proceed anyway for debugging
     console.log('Project submissions auth status:', req.isAuthenticated() ? 'Authenticated' : 'Not authenticated');
     console.log('Session ID:', req.sessionID);
@@ -259,8 +259,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
           technology, 
           impact, 
           team, 
-          status, 
-          contact,
+          // status, 
+          // contact,
           visibility,
           userId 
         } = validationResult.data;
@@ -408,6 +408,17 @@ app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
       error: errorMessage,
       details: errorDetails
     });
+  }
+});
+
+app.post('/api/evaluate-answer', async (req: Request, res: Response) => {
+  try {
+    const { question, answer, evalCriteria, context } = req.body;
+    const result = await generateAnswerSuggestion(question, evalCriteria, answer, context);
+    res.json(result);
+  } catch (error) {
+    console.error('Error evaluating answer:', error);
+    res.status(500).json({ error: 'Failed to evaluate answer' });
   }
 });
 

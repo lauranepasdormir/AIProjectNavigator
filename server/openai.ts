@@ -39,6 +39,7 @@ You are a helpful assistant for an AI project showcase platform. The user is fil
 
 Evaluation Criteria:
 ${criteria}
+If the answer provided by the user satisfies all the criteria for a particular question, then 
 
 Generate a suggested answer for the following question:
 "${question}"
@@ -94,3 +95,75 @@ Limit your response to 3-4 sentences maximum, focusing on the most important asp
 }
 
 console.log("OPENAI_API_KEY in env:", process.env.OPENAI_API_KEY);
+
+export async function generateAnswerSuggestion(
+  question: string,
+  evalCriteria: string,
+  answer: string,
+  context?: Record<string, string>
+): Promise<{ satisfied: boolean; feedback: string }> {
+  try {
+    if (!process.env.OPENAI_API_KEY) {
+      console.error("OPENAI_API_KEY is not set in environment");
+      throw new Error("OpenAI API key is not configured");
+    }
+
+    // Format context as a string if available
+    let contextString = "";
+    if (context && Object.keys(context).length > 0) {
+      contextString = "Here's some context about the project:\n\n";
+      Object.entries(context).forEach(([key, value]) => {
+        if (value && value.trim()) {
+          contextString += `${key}: ${value}\n`;
+        }
+      });
+    }
+
+    // Build the prompt for evaluation
+    const prompt = `
+You are an expert evaluator for an AI project showcase platform. 
+Your job is to review user answers to project questions and determine if they meet the evaluation criteria.
+
+Question:
+${question}
+
+User's Answer:
+${answer}
+
+Evaluation Criteria:
+${evalCriteria}
+
+${contextString ? contextString : "No additional context is available."}
+
+Instructions:
+- If the answer fully satisfies the evaluation criteria, respond with:
+SATISFIED: Yes
+FEEDBACK: (optional, short positive feedback)
+- If the answer does NOT fully satisfy the criteria, respond with:
+SATISFIED: No
+FEEDBACK: (explain what is missing or how to improve)
+Respond in this exact format.
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.2,
+      max_tokens: 200,
+    });
+
+    const content = response.choices[0].message.content || "";
+
+    // Parse the response
+    const satisfiedMatch = content.match(/SATISFIED:\s*(Yes|No)/i);
+    const feedbackMatch = content.match(/FEEDBACK:\s*([\s\S]*)/i);
+
+    const satisfied = satisfiedMatch ? satisfiedMatch[1].toLowerCase() === "yes" : false;
+    const feedback = feedbackMatch ? feedbackMatch[1].trim() : "No feedback provided.";
+
+    return { satisfied, feedback };
+  } catch (error) {
+    console.error("Error generating answer suggestion:", error);
+    throw new Error("Failed to evaluate the answer. Please try again later.");
+  }
+}

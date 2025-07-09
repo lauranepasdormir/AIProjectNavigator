@@ -30,6 +30,7 @@ export default function ChatForm() {
   const [selectedVisibility, setSelectedVisibility] = useState<string>("private"); // Default to private
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
   const [inputValue, setInputValue] = useState("");
+  const [draftResponse, setDraftResponse] = useState<string | null>(null);
 
   
   // Clear all project data from localStorage and reset state
@@ -289,8 +290,34 @@ export default function ChatForm() {
   };
 
   // Generate advice
-  const generateAdvice = (userInput: string, question: (typeof questions)[number]): string => {
-    return `Thanks for your response! "${userInput}" sounds thoughtful.`;
+  const generateAdvice = async (
+    userInput: string,
+    questionObj: (typeof questions)[number],
+    context: Record<string, string>
+  ): Promise<string> => {
+    // Find the criteria text for this question
+    const criteriaObj = evalCriteria.find(c => c.question === questionObj.id);
+    const criteriaText = criteriaObj?.text || "";
+
+    try {
+      const response = await apiRequest(
+        '/api/evaluate-answer',
+        'POST',
+        {
+          question: questionObj.text,
+          answer: userInput,
+          evalCriteria: criteriaText,
+          context
+        }
+      );
+      const data = await response.json();
+      // Return the AI's feedback as advice
+      console.log("AI feedback:", data.feedback);
+      return data.feedback || "Thanks for your response!";
+    } catch (error) {
+      console.error("Error generating advice:", error);
+      return "Sorry, I couldn't generate advice at this time.";
+    }
   };
 
   const [showNextButton, setShowNextButton] = useState(false);
@@ -325,86 +352,87 @@ export default function ChatForm() {
     }
     setShowNextButton(false);
   };
-
-
   
-  // Handle user input submission
-  const handleSubmit = (value: string) => {
-    // Add user message
+  const handleSubmit = async (value: string) => {
     addUserMessage(value);
-    
-    // If we're in the onboarding stages, proceed to the next stage
+
     if (onboardingStage !== 'questions') {
       proceedToNextOnboardingStage();
       return;
     }
-    
-    // Skip empty required answers for questions
+
     if (!value && currentQuestion >= 0 && questions[currentQuestion]?.required) {
       addBotMessage("This field is required. Please provide an answer.");
       return;
     }
-    
-    // Save answer
+
     if (currentQuestion >= 0) {
-      const updatedAnswers = { ...answers };
-      updatedAnswers[questions[currentQuestion].id] = value;
-      setAnswers(updatedAnswers);
-      
-      // Save answers to localStorage
-      try {
-        localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
-      } catch (error) {
-        console.error('Error saving to localStorage:', error);
-      }
+      // Find the criteria text for this question
+      const questionId = questions[currentQuestion]?.id;
+      const criteriaObj = evalCriteria.find(c => c.question === questionId);
+      const criteriaText = criteriaObj?.text || "";
 
-      if (currentQuestion <= 1) {
-        const withoutAdvice = nextQuestion(value, questions[currentQuestion]);
-        addNextMessage(withoutAdvice);
+      // Evaluate the answer with the backend/AI
+      const { feedback, satisfied } = await evaluateAnswerMutation.mutateAsync({
+        question: questions[currentQuestion].text,
+        answer: value,
+        evalCriteria: criteriaText,
+        context: answers
+      });
+
+      if (satisfied) {
+        // Save answer and move to next question
+        const updatedAnswers = { ...answers, [questions[currentQuestion].id]: value };
+        setAnswers(updatedAnswers);
+        try {
+          localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
+        setCurrentQuestion(prev => prev + 1);
+        setCurrentCriteria(prev => prev + 1);
+
+        if (currentQuestion + 1 < questions.length) {
+          setTimeout(() => {
+            addBotMessage(questions[currentQuestion + 1].text);
+          }, 500);
+        } else {
+          setTimeout(() => {
+            addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+          }, 500);
+        }
       } else {
-        const advice = generateAdvice(value, questions[currentQuestion]); 
+         // Not satisfied: show feedback and let user revise
+        const advice = await generateAdvice(
+          value,
+          questions[currentQuestion],
+          answers
+        );
         addAdviceMessage(advice);
+
+        // Do not advance currentQuestion; user stays on the same question
       }
-      
-      // Move to next question
-      // setCurrentQuestion(prev => prev + 1);
-
-      setShowNextButton(true);
-
-      setCurrentQuestion(prev => prev + 1);
-      setCurrentCriteria(prev => prev + 1);
-      
-      // If there are more questions, show the next one
-      // if (currentQuestion + 1 < questions.length) {
-      //   setTimeout(() => {
-      //     addBotMessage(questions[currentQuestion + 1].text);
-      //   }, 500);
-      // } else {
-      //   // Show completion message
-      //   setTimeout(() => {
-      //     addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
-      //   }, 500);
-      // }
-    }
-  };
-  // edit input by copying pervious messages
-  const editInputRef = useRef<((text: string) => void) | null>(null);
-
-  const editInput = (text: string) => {
-    if (editInputRef.current) {
-      editInputRef.current(text);
     }
   };
 
-  
-  // Handle previous button click
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1);
-      setCurrentCriteria(prev => prev - 1);
-      addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
-    }
-  };
+    // edit input by copying pervious messages
+    const editInputRef = useRef<((text: string) => void) | null>(null);
+
+    const editInput = (text: string) => {
+      if (editInputRef.current) {
+        editInputRef.current(text);
+      }
+    };
+
+    
+    // Handle previous button click
+    const handlePrevious = () => {
+      if (currentQuestion > 0) {
+        setCurrentQuestion(prev => prev - 1);
+        setCurrentCriteria(prev => prev - 1);
+        addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
+      }
+    };
   
   // Handle skip button click
   const handleSkip = () => {
@@ -556,7 +584,18 @@ export default function ChatForm() {
     context: answers
   });
 };
-  
+
+  const evaluateAnswerMutation = useMutation({
+    mutationFn: async ({ question, answer, evalCriteria, context }: { question: string; answer: string; evalCriteria: string; context: Record<string, string> }) => {
+      const response = await apiRequest(
+        '/api/evaluate-answer',
+        'POST',
+        { question, answer, evalCriteria, context }
+      );
+      return response.json();
+    }
+  });  
+
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);
   const htmlContent = formatMarkdownToHtml(markdownContent);
@@ -708,6 +747,7 @@ export default function ChatForm() {
                     e.preventDefault();
                     const value = (e.target as any).elements[0].value;
                     handleSubmit(value);
+                    setDraftResponse(value);
                   }}
                   className="border-t p-2 sm:p-3 bg-white flex flex-col gap-2"
                 >
