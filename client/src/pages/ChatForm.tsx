@@ -13,6 +13,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ChatForm() {
   // State management
@@ -26,6 +27,8 @@ export default function ChatForm() {
   const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility' | 'success' | 'profile'>('welcome');
   const [selectedVisibility, setSelectedVisibility] = useState<string>("private"); // Default to private
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
+  const [inputValue, setInputValue] = useState("");
+
   
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -108,8 +111,8 @@ export default function ChatForm() {
       return response.json();
     },
     onSuccess: (data) => {
-      // Add user message with isAIGenerated flag set to true
-      addUserMessage(data.suggestion, true);
+      // Add bot message with isAIGenerated flag set to true
+      addExampleMessage(data.suggestion);
       setGeneratingDraftForQuestion(null);
       
       toast({
@@ -193,6 +196,18 @@ export default function ChatForm() {
       }, 500);
     }
   };
+  // Welcome + 2s + Purpose
+  useEffect(() => {
+    if (onboardingStage === 'welcome') {
+      const timeout = setTimeout(() => {
+        setOnboardingStage('purpose');
+        addBotMessage("The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities.");
+      }, 2000); 
+
+      return () => clearTimeout(timeout); 
+    }
+  }, [onboardingStage]);
+
   
   // Scroll to bottom of chat area when messages change
   useEffect(() => {
@@ -215,6 +230,31 @@ export default function ChatForm() {
     
     setMessages(prev => [...prev, newMessage]);
   };
+
+
+  // Add a bot message to the chat
+  const addAdviceMessage = (content: string) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'advice',
+      content,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
+
+  const addExampleMessage = (content: string) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'example',
+      content,
+      timestamp: new Date(),
+      isAIGenerated: true,
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
   
   // Add a user message to the chat
   const addUserMessage = (content: string, isAIGenerated: boolean = false) => {
@@ -223,11 +263,67 @@ export default function ChatForm() {
       type: 'user',
       content,
       timestamp: new Date(),
-      isAIGenerated
     };
     
     setMessages(prev => [...prev, newMessage]);
   };
+
+
+  const addNextMessage = (content: string, isAIGenerated: boolean = false) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'next',
+      content,
+      timestamp: new Date(),
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
+
+  // Go to next question directly without advice
+  const nextQuestion = (userInput: string, question: (typeof questions)[number]): string => {
+    return `Great! Let's move on.`;
+  };
+
+  // Generate advice
+  const generateAdvice = (userInput: string, question: (typeof questions)[number]): string => {
+    return `Thanks for your response! "${userInput}" sounds thoughtful.`;
+  };
+
+  const [showNextButton, setShowNextButton] = useState(false);
+  // User ignores recommendations or example given and goes to the next question
+  const handleNextQuestion = () => {
+    setCurrentQuestion(prev => prev + 1);
+    if (currentQuestion + 1 < questions.length) {
+      setTimeout(() => {
+        addBotMessage(questions[currentQuestion + 1].text);
+      }, 500);
+    } else {
+      // Show completion message
+      setTimeout(() => {
+        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+      }, 500);
+    }
+    setShowNextButton(false);
+  };
+
+  const handleIgnoreButton = () => {
+    addNextMessage("Ok, let's move on.");
+    setCurrentQuestion(prev => prev + 1);
+    if (currentQuestion + 1 < questions.length) {
+      setTimeout(() => {
+        addBotMessage(questions[currentQuestion + 1].text);
+      }, 500);
+    } else {
+      // Show completion message
+      setTimeout(() => {
+        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+      }, 500);
+    }
+    setShowNextButton(false);
+  };
+
+
   
   // Handle user input submission
   const handleSubmit = (value: string) => {
@@ -258,23 +354,42 @@ export default function ChatForm() {
       } catch (error) {
         console.error('Error saving to localStorage:', error);
       }
+
+      if (currentQuestion <= 1) {
+        const withoutAdvice = nextQuestion(value, questions[currentQuestion]);
+        addNextMessage(withoutAdvice);
+      } else {
+        const advice = generateAdvice(value, questions[currentQuestion]); 
+        addAdviceMessage(advice);
+      }
       
       // Move to next question
-      setCurrentQuestion(prev => prev + 1);
+      // setCurrentQuestion(prev => prev + 1);
+
+      setShowNextButton(true);
       
       // If there are more questions, show the next one
-      if (currentQuestion + 1 < questions.length) {
-        setTimeout(() => {
-          addBotMessage(questions[currentQuestion + 1].text);
-        }, 500);
-      } else {
-        // Show completion message
-        setTimeout(() => {
-          addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
-        }, 500);
-      }
+      // if (currentQuestion + 1 < questions.length) {
+      //   setTimeout(() => {
+      //     addBotMessage(questions[currentQuestion + 1].text);
+      //   }, 500);
+      // } else {
+      //   // Show completion message
+      //   setTimeout(() => {
+      //     addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+      //   }, 500);
+      // }
     }
   };
+  // edit input by copying pervious messages
+  const editInputRef = useRef<((text: string) => void) | null>(null);
+
+  const editInput = (text: string) => {
+    if (editInputRef.current) {
+      editInputRef.current(text);
+    }
+  };
+
   
   // Handle previous button click
   const handlePrevious = () => {
@@ -431,6 +546,8 @@ export default function ChatForm() {
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);
   const htmlContent = formatMarkdownToHtml(markdownContent);
+  // const [llm, setLLM] = useState("gpt-4o");
+
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -441,6 +558,18 @@ export default function ChatForm() {
             <div className="flex items-center">
               <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
               <h1 className="text-lg sm:text-xl font-semibold">Submit Your AI Project</h1>
+    
+              {/* <Select defaultValue="gpt-4o" onValueChange={(value) => setLLM(value)}>
+                <SelectTrigger className="w-[120px] bg-white text-primary text-sm h-8 border-none shadow-sm">
+                  <SelectValue placeholder="LLM" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  <SelectItem value="gpt-3.5-turbo">GPT-3.5</SelectItem>
+                  <SelectItem value="claude-3">Claude 3</SelectItem>
+                  <SelectItem value="llama-3">LLaMA 3</SelectItem> 
+                </SelectContent>
+              </Select> */}
             </div>
             <Button 
               variant="secondary" 
@@ -474,6 +603,9 @@ export default function ChatForm() {
                   onRequestDraft={!isComplete ? handleDraftRequest : undefined}
                   currentQuestion={currentQuestion}
                   isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}
+                  onIgnore={handleIgnoreButton}
+                  nextQuestion={handleNextQuestion}
+                  onEdit={(text) => editInput(text)}
                 />
               ))}
             </div>
@@ -529,7 +661,7 @@ export default function ChatForm() {
 
           {/* Input Area */}
           <div className="mt-auto">
-            {onboardingStage === 'welcome' && (
+            {/* {onboardingStage === 'welcome' && (
               <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
                 <div className="flex justify-center">
                   <Button
@@ -540,7 +672,7 @@ export default function ChatForm() {
                   </Button>
                 </div>
               </div>
-            )}
+            )} */}
             
             {onboardingStage === 'purpose' && (
               <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
@@ -575,6 +707,9 @@ export default function ChatForm() {
                 isPreviewMode={false}
                 isSaved={isSaved}
                 isSaving={submitProjectMutation.isPending}
+                onEditInput={(fn) => {
+                  editInputRef.current = fn;
+                }}
               />
             )}
             

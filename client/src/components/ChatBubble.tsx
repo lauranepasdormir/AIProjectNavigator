@@ -2,22 +2,40 @@ import { cn } from "@/lib/utils";
 import { ChatMessage } from "@shared/schema";
 import { ToyBrick, PersonStanding, LightbulbIcon, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { questions } from "@/lib/questions";
+
+import { useToast } from "@/hooks/use-toast";
+import { Copy } from "lucide-react";
 
 interface ChatBubbleProps {
   message: ChatMessage;
   onRequestDraft?: (question: string) => void;
   currentQuestion?: number;
   isGeneratingDraft?: boolean;
+
+  // showIgnoreButton?: boolean;
+  onIgnore?: () => void;
+  nextQuestion?: () => void;
+  onEdit?: (text: string) => void
+
 }
 
 export function ChatBubble({ 
   message, 
   onRequestDraft, 
   currentQuestion,
-  isGeneratingDraft = false 
+  isGeneratingDraft = false,
+  // showIgnoreButton = false,
+  onIgnore,
+  nextQuestion,
+  onEdit
 }: ChatBubbleProps) {
-  const isBot = message.type === 'bot';
-  const isAIGenerated = message.isAIGenerated;
+  const isAdvice = message.type === 'advice';
+  const isNext = message.type === 'next';
+  const isExample = message.type === 'example';
+  const isBot = message.type === 'bot' || isAdvice || isNext;
+  const isUser = message.type === 'user' && !isAdvice && !isNext && !isExample;
+  const isAIGenerated = message.isAIGenerated || message.type === 'example';
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   
   // Define keywords that indicate a non-draftable message
@@ -41,11 +59,38 @@ export function ChatBubble({
   // Only show the draft button for bot messages (questions) that have the draft handler
   // And only starting from the description question (index 2) onwards
   // And only for messages that don't contain any of the keywords
-  const showDraftButton = isBot 
+  const showDraftButton = isAdvice
     && onRequestDraft 
     && typeof currentQuestion === 'number' 
     && currentQuestion >= 2
     && !containsKeyword(message.content);
+
+  const showIgnoreButton = (isAdvice || isExample)
+    && onRequestDraft 
+    && !containsKeyword(message.content);
+
+
+  const showNextButton = isNext
+    && onRequestDraft 
+    && !containsKeyword(message.content);
+
+  const { toast } = useToast();
+  const handleCopy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Message copied to clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: "Failed to copy.",
+        variant: "destructive",
+      });
+    }
+  };
+
   
   return (
     <div className={cn(
@@ -67,11 +112,84 @@ export function ChatBubble({
             {isAIGenerated && (
               <div className="mb-1 flex items-center">
                 <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full inline-block">AI Example</span>
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-amber-700 hover:text-amber-900 ml-auto"
+                  onClick={() => onEdit(message.content)}
+                >
+                  Edit
+                </Button>
+              )}
               </div>
             )}
             <p className="text-sm sm:text-base break-words">{message.content}</p>
+
+            {isUser && (
+              <div className="mt-2 text-right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-white/70 hover:text-white"
+                  onClick={() => onEdit?.(message.content)}
+                >
+                  <Copy className="h-4 w-4 mr-1" />
+                  Edit
+                </Button>
+              </div>
+            )}
+
+            {(showDraftButton || showIgnoreButton || showNextButton) && (
+              <div className="mt-2 pt-2 border-t border-gray-200 flex gap-2">
+                {showDraftButton && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    onClick={() => onRequestDraft?.(questions[currentQuestion].text)}
+                    disabled={isGeneratingDraft}
+                  >
+                    {isGeneratingDraft ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin text-blue-600" />
+                        <span className="truncate">Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <LightbulbIcon className="mr-1 h-3 w-3 text-blue-600" />
+                        Give me an example
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {showIgnoreButton && (
+                  <Button
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    onClick={onIgnore}
+                  >
+                    Ignore
+                  </Button>
+                )}
+
+                {showNextButton && (
+                  <Button
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    onClick={nextQuestion}
+                  >
+                    Next Question
+                  </Button>
+                )}
+              </div>
+            )}
+
             
-            {showDraftButton && (
+            {/* {showDraftButton && (
               <div className="mt-2 pt-2 border-t border-gray-200">
                 <Button 
                   variant="outline" 
@@ -94,6 +212,21 @@ export function ChatBubble({
                 </Button>
               </div>
             )}
+
+            {showIgnoreButton && (
+              <div className="mt-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-xs text-gray-500 hover:text-gray-700"
+                  onClick={onIgnore}
+                >
+                  Ignore
+                </Button>
+              </div>
+            )} */}
+
+
           </div>
           <div className={cn(
             "text-xs text-gray-500 mt-1",

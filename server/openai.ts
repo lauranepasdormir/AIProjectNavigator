@@ -1,4 +1,6 @@
 import OpenAI from "openai";
+import 'dotenv/config';
+
 
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -90,3 +92,5 @@ Limit your response to 3-4 sentences maximum, focusing on the most important asp
     throw new Error("Failed to generate a draft response. Please try again later.");
   }
 }
+
+console.log("OPENAI_API_KEY in env:", process.env.OPENAI_API_KEY);

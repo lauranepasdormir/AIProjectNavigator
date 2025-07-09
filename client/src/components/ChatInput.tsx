@@ -14,6 +14,7 @@ interface ChatInputProps {
   isPreviewMode?: boolean;
   isSaved?: boolean;
   isSaving?: boolean;
+  onEditInput?: (fn: (text: string) => void) => void;
 }
 
 // Define SpeechRecognition interface for TypeScript
@@ -61,13 +62,14 @@ export function ChatInput({
   onBackToChat,
   isPreviewMode = false,
   isSaved = false,
-  isSaving = false
+  isSaving = false,
+  onEditInput
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isVoiceSupported, setIsVoiceSupported] = useState(true);
-  
+
   // Initialize speech recognition
   useEffect(() => {
     if (typeof SpeechRecognitionAPI !== 'undefined') {
@@ -105,6 +107,10 @@ export function ChatInput({
       }
     };
   }, []);
+
+  useEffect(() => {
+    onEditInput?.((text) => setInputValue(text));
+  }, [onEditInput]);
   
   const startListening = () => {
     if (recognition) {
