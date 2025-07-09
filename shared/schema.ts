@@ -44,7 +44,7 @@ export type ProjectSubmission = typeof projectSubmissions.$inferSelect;
 // Chat message type for frontend
 export interface ChatMessage {
   id: string;
-  type: 'bot' | 'user';
+  type: 'bot' | 'user' | 'advice' | 'example' | 'next';
   content: string;
   timestamp: Date;
   isAIGenerated?: boolean;
