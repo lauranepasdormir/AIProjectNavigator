@@ -143,7 +143,7 @@ ${contextString ? contextString : "No additional context is available."}
 Instructions:
 - If the answer fully satisfies the evaluation criteria, respond with:
 SATISFIED: Yes
-FEEDBACK: (optional, short positive feedback)
+FEEDBACK:  (say something to the effect of "Great! Let's move on." but feel free to vary this second part of the response slightly)
 - If the answer does NOT fully satisfy the criteria, respond with:
 SATISFIED: No
 FEEDBACK: (give some advice to improve the response, do not give an example. The criteria are for internal use only, do not use them verbatim in your response. Keep your advice and suggestions very concise. )

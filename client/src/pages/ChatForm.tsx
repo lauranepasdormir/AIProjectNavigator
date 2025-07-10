@@ -414,6 +414,13 @@ const handleIgnoreButton = () => {
         setCurrentQuestion(prev => prev + 1);
         setCurrentCriteria(prev => prev + 1);
 
+        const affirmation = await generateAdvice(
+          value,
+          questions[currentQuestion],
+          answers
+        );
+        addAdviceMessage(affirmation);
+
         if (currentQuestion + 1 < questions.length) {
           setTimeout(() => {
             addBotMessage(questions[currentQuestion + 1].text);
