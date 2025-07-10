@@ -14,6 +14,7 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { index } from "drizzle-orm/mysql-core";
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ChatForm() {
@@ -59,7 +60,8 @@ export default function ChatForm() {
           id: uuidv4(),
           type: 'bot',
           content: "Hi! Glad you made it here. Thanks for taking the time to share some info about a project you worked on.",
-          timestamp: new Date()
+          timestamp: new Date(),
+          questionId: currentQuestion
         };
         setMessages([welcomeMessage]);
       }, 100);
@@ -166,7 +168,8 @@ export default function ChatForm() {
         id: uuidv4(),
         type: 'bot',
         content: "Hi! Glad you made it here. Thanks for taking the time to share some info about a project you worked on.",
-        timestamp: new Date()
+        timestamp: new Date(),
+        questionId: currentQuestion
       };
       
       setMessages([welcomeMessage]);
@@ -176,6 +179,7 @@ export default function ChatForm() {
     try {
       const savedAnswers = localStorage.getItem('projectAnswers');
       if (savedAnswers) {
+        console.log(answers);
         const parsedAnswers = JSON.parse(savedAnswers);
         setAnswers(parsedAnswers);
         
@@ -233,7 +237,8 @@ export default function ChatForm() {
       id: uuidv4(),
       type: 'bot',
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
+      questionId: currentQuestion
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -246,7 +251,8 @@ export default function ChatForm() {
       id: uuidv4(),
       type: 'advice',
       content,
-      timestamp: new Date()
+      timestamp: new Date(),
+      questionId: currentQuestion
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -259,6 +265,7 @@ export default function ChatForm() {
       content,
       timestamp: new Date(),
       isAIGenerated: true,
+      questionId: currentQuestion
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -271,6 +278,7 @@ export default function ChatForm() {
       type: 'user',
       content,
       timestamp: new Date(),
+      questionId: currentQuestion
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -283,6 +291,7 @@ export default function ChatForm() {
       type: 'next',
       content,
       timestamp: new Date(),
+      questionId: currentQuestion
     };
     
     setMessages(prev => [...prev, newMessage]);
@@ -373,6 +382,14 @@ export default function ChatForm() {
     if (currentQuestion >= 0) {
       // Find the criteria text for this question
       const questionId = questions[currentQuestion]?.id;
+      const updatedAnswers = { ...answers, [questionId]: value };
+      setAnswers(updatedAnswers);
+      try {
+        localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+      } catch (error) {
+        console.error('Error saving to localStorage:', error);
+      }
+
       const criteriaObj = evalCriteria.find(c => c.question === questionId);
       const criteriaText = criteriaObj?.text || "";
 
@@ -386,13 +403,13 @@ export default function ChatForm() {
 
       if (satisfied) {
         // Save answer and move to next question
-        const updatedAnswers = { ...answers, [questions[currentQuestion].id]: value };
-        setAnswers(updatedAnswers);
-        try {
-          localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
-        } catch (error) {
-          console.error('Error saving to localStorage:', error);
-        }
+        // const updatedAnswers = { ...answers, [questions[currentQuestion].id]: value };
+        // setAnswers(updatedAnswers);
+        // try {
+        //   localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+        // } catch (error) {
+        //   console.error('Error saving to localStorage:', error);
+        // }
         setCurrentQuestion(prev => prev + 1);
         setCurrentCriteria(prev => prev + 1);
 
@@ -653,10 +670,12 @@ export default function ChatForm() {
               ref={chatAreaRef}
               className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh]"
             >
-              {messages.map(message => (
+              {messages.map((message, index) => (
                 <ChatBubble 
                   key={message.id} 
                   message={message} 
+                  index={index}
+                  answers={answers}
                   onRequestDraft={!isComplete ? handleDraftRequest : undefined}
                   currentQuestion={currentQuestion}
                   isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}

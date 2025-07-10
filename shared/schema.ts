@@ -47,4 +47,5 @@ export interface ChatMessage {
   content: string;
   timestamp: Date;
   isAIGenerated?: boolean;
+  questionId: number;
 }
