@@ -1,42 +1,21 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import React, { useState, useEffect, Suspense, lazy } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProjectSubmission } from "@shared/schema";
-import {
-  Table,
-  TableBody,
-  TableCaption,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Search, Eye, Calendar, User, Download, Lock, Users, Globe, Edit, Trash2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDistanceToNow } from "date-fns";
-import { generateMarkdown, downloadMarkdown, formatMarkdownToHtml } from "@/lib/markdown";
+import { toast } from "sonner";
+import { generateMarkdown, downloadMarkdown } from "@/lib/markdown";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+
+import SearchFilterBar from "@/components/admin/SearchFilterBar";
+import SubmissionTable from "@/components/admin/SubmissionTable";
+
+
+
+import SetupPage from "@/pages/SetupPage";
+
+// Lazy-load dialog components
+const SubmissionDetailsDialog = React.lazy(() => import("@/components/admin/SubmissionDetailsDialog"));
+const DeleteConfirmationDialog = React.lazy(() => import("@/components/admin/DeleteConfirmationDialog"));
 
 export default function AdminPanel() {
   // State for search, dialog, and filters
@@ -46,197 +25,113 @@ export default function AdminPanel() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<ProjectSubmission | null>(null);
   const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
-  const { toast } = useToast();
+  const queryClientInstance = useQueryClient();
 
-  // Check auth status first - this adds a simple verification of login status
+  // Check auth status
   const { data: authStatus, isLoading: isAuthLoading } = useQuery({
     queryKey: ['/api/me'],
     retry: 1,
     retryDelay: 1000,
   });
-  
-  // Fetch project submissions with added error info - using direct endpoint that bypasses auth
-  const { 
-    data: projectSubmissions, 
-    isLoading: isSubmissionsLoading, 
+
+  // Fetch submissions
+  const {
+    data: projectSubmissions,
+    isLoading: isSubmissionsLoading,
     error: submissionsError,
-    refetch: refetchSubmissions
+    refetch: refetchSubmissions,
   } = useQuery({
     queryKey: ['/api/project-submissions-direct'],
-    refetchInterval: 30000, // Refetch every 30 seconds
-    retry: 3,
-    retryDelay: (attemptIndex) => Math.min(1000 * (2 ** attemptIndex), 10000),
-    enabled: true, // Always fetch regardless of authentication status
     queryFn: async () => {
-      console.log("Directly fetching project submissions from bypass endpoint - " + new Date().toISOString());
-      
       try {
-        // First try the direct endpoint that always works
-        const directApiUrl = '/api/project-submissions-direct';
-        console.log(`Fetching from ${directApiUrl}`);
-        
-        const directRes = await fetch(directApiUrl, {
+        // Attempt direct endpoint (bypassing auth)
+        const directRes = await fetch('/api/project-submissions-direct', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
         });
-        
-        console.log(`Direct API response status: ${directRes.status} ${directRes.statusText}`);
-        
         if (directRes.ok) {
           const data = await directRes.json();
-          if (Array.isArray(data) && data.length > 0) {
-            console.log(`SUCCESS: Retrieved ${data.length} submissions directly`);
-            return data;
-          } else {
-            console.log(`Warning: Retrieved empty data array from direct endpoint`);
-          }
-        } else {
-          console.warn(`Warning: Direct endpoint returned non-OK status: ${directRes.status}`);
+          return data as ProjectSubmission[];
         }
-        
-        // Fall back to the regular endpoint if direct fails
-        console.log("Falling back to regular endpoint");
+        // Fallback to regular endpoint
         const regularRes = await fetch('/api/project-submissions', {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Cache-Control': 'no-cache, no-store, must-revalidate',
-            'Pragma': 'no-cache'
-          },
+          headers: { 'Content-Type': 'application/json' },
           credentials: 'include'
         });
-        
         if (!regularRes.ok) {
-          console.error(`Regular API error: ${regularRes.status} ${regularRes.statusText}`);
           throw new Error(`API Error: ${regularRes.status} ${regularRes.statusText}`);
         }
-        
         const regularData = await regularRes.json();
-        console.log(`Retrieved ${regularData.length} submissions from regular endpoint`);
-        return regularData;
+        return regularData as ProjectSubmission[];
       } catch (error) {
-        console.error("Error fetching submissions:", error);
         throw error;
       }
-    }
+    },
   });
-  
-  // Combined loading state
-  const isLoading = isAuthLoading || isSubmissionsLoading;
-  const error = submissionsError;
-  
-  // Delete mutation
+
   const deleteMutation = useMutation({
     mutationFn: async (submissionId: number) => {
       const response = await fetch(`/api/project-submissions/${submissionId}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         credentials: 'include'
       });
-      
       if (!response.ok) {
-        const error = await response.text();
-        throw new Error(error || `Delete failed: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(errorText || `Delete failed: ${response.status}`);
       }
-      
       return true;
     },
     onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Project submission deleted successfully",
-        variant: "default"
+      toast("Project submission deleted successfully", { 
+        description: "Success", 
+        style: { background: "#22c55e", color: "#fff" } 
       });
-      // Invalidate queries to refresh the data
-      queryClient.invalidateQueries({ queryKey: ['/api/project-submissions-direct'] });
+      queryClientInstance.invalidateQueries({ queryKey: ['/api/project-submissions-direct'] });
       setIsDeleteDialogOpen(false);
       setSubmissionToDelete(null);
     },
-    onError: (error) => {
-      console.error("Error deleting submission:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete project submission",
-        variant: "destructive"
+    onError: () => {
+      toast("Failed to delete project submission", { 
+        description: "Error", 
+        style: { background: "#ef4444", color: "#fff" } 
       });
     }
   });
 
-  // Format date nicely
-  const formatDate = (dateInput: string | Date) => {
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    return formatDistanceToNow(date, { addSuffix: true });
-  };
+  const isLoading = isAuthLoading || isSubmissionsLoading;
+  const error = submissionsError as Error | null;
 
-  // Get visibility badge color
-  const getVisibilityColor = (visibility: string): "default" | "secondary" | "outline" | "destructive" => {
-    switch(visibility.toLowerCase()) {
-      case 'private':
-        return 'secondary';
-      case 'internal':
-        return 'default';  
-      case 'public':
-        return 'destructive'; // Using destructive to represent 'public' - typically red/orange color
-      default:
-        return 'outline';
-    }
-  };
-
-  // Debug logs to help troubleshoot
-  console.log("AdminPanel ProjectSubmissions:", {
-    authStatus,
-    projectSubmissions,
-    isSubmissionsArray: Array.isArray(projectSubmissions),
-    submissionsCount: Array.isArray(projectSubmissions) ? projectSubmissions.length : 0,
-    isLoading
-  });
-  
-  // Filter submissions based on search query and visibility filter
-  const filteredSubmissions = projectSubmissions && Array.isArray(projectSubmissions) 
+  // Filter logic
+  const filteredSubmissions = projectSubmissions && Array.isArray(projectSubmissions)
     ? projectSubmissions.filter((submission: ProjectSubmission) => {
-        // First filter by visibility if needed
         if (visibilityFilter !== 'all' && submission.visibility.toLowerCase() !== visibilityFilter.toLowerCase()) {
           return false;
         }
-        
-        // Then filter by search query
         if (!searchQuery) return true;
-        
-        const searchLower = searchQuery.toLowerCase();
+        const lower = searchQuery.toLowerCase();
         return (
-          submission.title.toLowerCase().includes(searchLower) ||
-          submission.username.toLowerCase().includes(searchLower) ||
-          submission.description.toLowerCase().includes(searchLower) ||
-          submission.status.toLowerCase().includes(searchLower)
+          submission.title.toLowerCase().includes(lower) ||
+          submission.description.toLowerCase().includes(lower)
         );
       })
     : [];
 
-  // View submission details
+  // Handlers
   const handleViewSubmission = (submission: ProjectSubmission) => {
     setSelectedSubmission(submission);
     setIsDialogOpen(true);
   };
 
-  // Close the dialog
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedSubmission(null);
   };
-  
-  // Handle download markdown file
+
   const handleDownload = (submission: ProjectSubmission) => {
-    // Prepare data in the expected format for generateMarkdown
     const markdownData = {
-      username: submission.username,
       title: submission.title,
       description: submission.description,
       problem: submission.problem,
@@ -244,28 +139,25 @@ export default function AdminPanel() {
       impact: submission.impact,
       team: submission.team,
       status: submission.status,
+      username: submission.username,
+
     };
-    
-    // Generate markdown and download
     const markdown = generateMarkdown(markdownData);
     const filename = `${submission.title.replace(/\s+/g, '-').toLowerCase()}.md`;
     downloadMarkdown(markdown, filename);
   };
-  
-  // Open delete confirmation dialog
+
   const handleDeleteClick = (submission: ProjectSubmission) => {
     setSubmissionToDelete(submission);
     setIsDeleteDialogOpen(true);
   };
-  
-  // Handle actual deletion
+
   const confirmDelete = () => {
     if (submissionToDelete) {
       deleteMutation.mutate(submissionToDelete.id);
     }
   };
-  
-  // Cancel deletion
+
   const cancelDelete = () => {
     setIsDeleteDialogOpen(false);
     setSubmissionToDelete(null);
@@ -275,45 +167,12 @@ export default function AdminPanel() {
     <div className="container mx-auto py-10 px-4">
       <div className="flex flex-col md:flex-row items-center justify-between mb-6 gap-4">
         <h1 className="text-3xl font-bold text-primary">Project Submissions</h1>
-        
-        {/* Search input */}
-        <div className="relative w-full md:w-64">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-          <Input
-            className="pl-9 w-full"
-            placeholder="Search submissions..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
-      
-      {/* Visibility filter tabs */}
-      <div className="mb-6">
-        <Tabs 
-          defaultValue="all" 
-          value={visibilityFilter}
-          onValueChange={setVisibilityFilter}
-          className="w-full"
-        >
-          <TabsList className="grid grid-cols-4 w-full max-w-md">
-            <TabsTrigger value="all" className="flex items-center gap-1">
-              All
-            </TabsTrigger>
-            <TabsTrigger value="private" className="flex items-center gap-1">
-              <Lock className="h-4 w-4" />
-              Private
-            </TabsTrigger>
-            <TabsTrigger value="internal" className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              Internal
-            </TabsTrigger>
-            <TabsTrigger value="public" className="flex items-center gap-1">
-              <Globe className="h-4 w-4" />
-              Public
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
+        <SearchFilterBar
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          visibilityFilter={visibilityFilter}
+          setVisibilityFilter={setVisibilityFilter}
+        />
       </div>
 
       {isLoading ? (
@@ -322,153 +181,61 @@ export default function AdminPanel() {
         </div>
       ) : error ? (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-          <strong className="font-bold block mb-1">Failed to load submissions</strong>
-          <span className="block sm:inline mb-2">
-            {!authStatus 
-              ? "You may not be authenticated. Please try logging in again." 
-              : "There was a problem connecting to the database. Please try again or contact support."}
+          <strong className="font-bold">Error:</strong>
+          <span className="block sm:inline ml-2">
+            {error.message || "There was a problem connecting to the database."}
           </span>
-          
-          {/* Display detailed error information */}
-          <div className="mt-2 mb-3 text-sm bg-red-50 p-2 rounded border border-red-200">
+          <div className="mt-2 text-sm bg-red-50 p-2 rounded border border-red-200">
             <p className="font-semibold">Error details:</p>
             <code className="text-xs block mt-1 overflow-auto max-h-24">
-              {error instanceof Error 
-                ? `${error.name}: ${error.message}` 
-                : 'Unknown error occurred'}
+              {error.name}: {error.message}
             </code>
           </div>
-          
           <div className="mt-2 flex space-x-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => {
-                // Force refetch
-                refetchSubmissions();
-                toast({
-                  title: "Retrying",
-                  description: "Attempting to reload project submissions",
-                  variant: "default"
-                });
-              }}
-            >
+            <Button variant="outline" size="sm" onClick={() => refetchSubmissions()}>
               Retry
             </Button>
-            
-            {!authStatus && (
-              <Button 
-                variant="default" 
-                size="sm" 
-                onClick={() => {
-                  // Redirect to login page
-                  window.location.href = '/login';
-                }}
-              >
-                Log in again
-              </Button>
-            )}
+            <Button variant="outline" size="sm" onClick={() => window.location.href = '/login'}>
+              Log in again
+            </Button>
           </div>
         </div>
-      ) : filteredSubmissions?.length === 0 ? (
+      ) : filteredSubmissions.length === 0 ? (
         <div className="text-center py-10 text-gray-500">
           <div className="mb-2">No submissions found</div>
           {searchQuery && <div>Try adjusting your search</div>}
         </div>
       ) : (
-        <Table>
-          <TableCaption>A list of all project submissions.</TableCaption>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Project</TableHead>
-              <TableHead>Visibility</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Submitted by</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredSubmissions?.map((submission: ProjectSubmission) => (
-              <TableRow key={submission.id}>
-                <TableCell className="font-medium">
-                  <div className="font-bold">{submission.title}</div>
-                  <div className="text-sm text-gray-500 truncate max-w-md">
-                    {submission.description.length > 100
-                      ? `${submission.description.substring(0, 100)}...`
-                      : submission.description}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={getVisibilityColor(submission.visibility)}
-                    className="flex items-center gap-1 whitespace-nowrap"
-                  >
-                    {submission.visibility === 'private' && <Lock className="h-3.5 w-3.5" />}
-                    {submission.visibility === 'internal' && <Users className="h-3.5 w-3.5" />}
-                    {submission.visibility === 'public' && <Globe className="h-3.5 w-3.5" />}
-                    {submission.visibility.charAt(0).toUpperCase() + submission.visibility.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge 
-                    variant={
-                      submission.status === "Completed" ? "default" :
-                      submission.status === "In Progress" ? "secondary" :
-                      "outline"
-                    }
-                  >
-                    {submission.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-500" />
-                    {submission.username}
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4 text-gray-500" />
-                    {formatDate(submission.createdAt)}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button 
-                      size="sm"
-                      variant="outline"
-                      onClick={() => handleDownload(submission)}
-                      className="gap-1"
-                    >
-                      <Download className="h-4 w-4" />
-                      Download
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={() => handleViewSubmission(submission)}
-                      className="gap-1"
-                    >
-                      <Eye className="h-4 w-4" />
-                      View
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="destructive"
-                      onClick={() => handleDeleteClick(submission)}
-                      className="gap-1"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <SubmissionTable
+          submissions={filteredSubmissions}
+          onView={handleViewSubmission}
+          onDelete={handleDeleteClick}
+          onDownload={handleDownload}
+        />
       )}
 
+      {/* Lazy-loaded dialogs */}
+      {selectedSubmission && (
+        <Suspense fallback={<div>Loading...</div>}>
+          <SubmissionDetailsDialog
+            open={isDialogOpen}
+            submission={selectedSubmission}
+            onClose={handleCloseDialog}
+            onDelete={handleDeleteClick}
+            onDownload={handleDownload}
+          />
+        </Suspense>
+      )}
+      {submissionToDelete && (
+        <Suspense fallback={<></>}>
+          <DeleteConfirmationDialog
+            open={isDeleteDialogOpen}
+            submission={submissionToDelete}
+            onCancel={cancelDelete}
+            onConfirm={confirmDelete}
+          />
+        </Suspense>
+      )}
       {/* Submission Details Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">

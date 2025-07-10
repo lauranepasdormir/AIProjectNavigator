@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
+import { generateDraftResponse } from "./openai";
+import { setupAuth, isAuthReady } from "./auth";
 import { generateDraftResponse, generateAnswerSuggestion } from "./openai";
 import { setupAuth } from "./auth";
 import { pool } from "./db";
@@ -35,6 +37,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Setup authentication
   const { isAuthenticated } = setupAuth(app);
+
+  app.get("/api/setup-status", (_req: Request, res: Response) => {
+    res.json({ ready: isAuthReady() });
+  });
   
   // Setup direct project submissions endpoint without authentication
   setupNoAuthProjectSubmissions(app, pool);
@@ -144,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status, 
+            status,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -195,7 +201,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status, 
+            status,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -256,7 +262,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           technology, 
           impact, 
           team, 
-          // status, 
+          status,
           visibility,
           userId 
         } = validationResult.data;
@@ -288,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status, 
+            status,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -375,6 +381,13 @@ app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
       console.error("Invalid question format");
       return res.status(400).json({ error: 'Question is required' });
     }
+
+  });
+  // 5) Final catch-all for unknown API routes
+  app.use("/api", (_req, res) => {
+    res.status(404).json({ error: "API endpoint not found" });
+  });
+
     if (!evalCriteria || typeof evalCriteria !== 'string') {
       console.error("Invalid evalCriteria format");
       return res.status(400).json({ error: 'Evaluation criteria is required' });

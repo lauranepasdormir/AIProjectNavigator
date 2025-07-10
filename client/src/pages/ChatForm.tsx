@@ -651,7 +651,7 @@ export default function ChatForm() {
           ) : (
             <div 
               ref={chatAreaRef}
-              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh]"
+              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh] "
             >
               {messages.map(message => (
                 <ChatBubble 
