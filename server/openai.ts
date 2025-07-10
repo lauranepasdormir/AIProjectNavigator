@@ -126,8 +126,8 @@ export async function generateAnswerSuggestion(
 
     // Build the prompt for evaluation
     const prompt = `
-You are an expert evaluator for an AI project showcase platform. 
-Your job is to review user answers to project questions and determine if they meet the evaluation criteria.
+You are a helpful assistant for an AI project showcase platform. 
+The user is filling out a form about their project. I'll provide the question, its criteria and the user response. 
 
 Question:
 ${question}
@@ -146,7 +146,7 @@ SATISFIED: Yes
 FEEDBACK: (optional, short positive feedback)
 - If the answer does NOT fully satisfy the criteria, respond with:
 SATISFIED: No
-FEEDBACK: (explain what is missing or how to improve)
+FEEDBACK: (give some advice to improve the response, do not give an example. The criteria are for internal use only, do not use them verbatim in your response. Keep your advice and suggestions very concise. )
 Respond in this exact format.
 `;
 
