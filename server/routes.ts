@@ -3,10 +3,8 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
-import { generateDraftResponse } from "./openai";
-import { setupAuth, isAuthReady } from "./auth";
 import { generateDraftResponse, generateAnswerSuggestion } from "./openai";
-import { setupAuth } from "./auth";
+import { setupAuth, isAuthReady } from "./auth";
 import { pool } from "./db";
 import { setupNoAuthProjectSubmissions } from "./disable-auth-for-submissions";
 
@@ -44,7 +42,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Setup direct project submissions endpoint without authentication
   setupNoAuthProjectSubmissions(app, pool);
-  
+
   // Project Submission Routes
   // Admin route - temporarily bypass authentication for debugging
   app.get('Invalid project submiss', async (req: Request, res: Response) => {
@@ -54,17 +52,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.log('User:', req.user || 'None');
     let retries = 0;
     const maxRetries = 3;
-    
+
     while (retries < maxRetries) {
       try {
         console.log(`Fetching all project submissions (attempt ${retries + 1}/${maxRetries})...`);
-        
+
         // Verify authentication
         console.log('User authentication:', req.isAuthenticated() ? 'Authenticated' : 'Not authenticated');
         if (req.user) {
           console.log('User details:', req.user);
         }
-        
+
         // Using direct SQL query through the pool instead of the ORM for reliability
         const client = await pool.connect();
         try {
@@ -88,15 +86,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
             ORDER BY id DESC
           `);
           const submissions = result.rows;
-          
+
           console.log(`Retrieved ${submissions.length} project submissions via direct SQL:`, 
             submissions.slice(0, 3).map(s => ({ id: s.id, title: s.title })));
-          
+
           // Set explicit cache control headers
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
           res.setHeader('Pragma', 'no-cache');
           res.setHeader('Expires', '0');
-          
+
           return res.json(submissions);
         } finally {
           // Release client back to the pool
@@ -108,7 +106,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.error(`Error fetching project submissions (attempt ${retries}/${maxRetries}):`, error);
         console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
         console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-        
+
         if (retries >= maxRetries) {
           console.error('Maximum retries reached, returning error response');
           return res.status(500).json({ 
@@ -118,7 +116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             maxRetries
           });
         }
-        
+
         // Add exponential backoff
         const delay = Math.pow(2, retries) * 500; // 1s, 2s, 4s
         console.log(`Retrying in ${delay}ms...`);
@@ -139,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const client = await pool.connect();
       try {
         console.log(`Fetching project submission ID ${id} via direct SQL...`);
-        
+
         const result = await client.query(`
           SELECT 
             id, 
@@ -150,25 +148,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status,
+            status, 
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
           FROM project_submissions 
           WHERE id = $1
         `, [id]);
-        
+
         const submission = result.rows[0];
-        
+
         if (!submission) {
           return res.status(404).json({ error: 'Project submission not found' });
         }
-        
+
         // Only allow access to public projects if not authenticated
         if (!req.isAuthenticated() && submission.visibility !== 'public') {
           return res.status(401).json({ error: 'Authentication required to view this project' });
         }
-        
+
         console.log(`Successfully retrieved project submission ID ${id}`);
         res.json(submission);
       } finally {
@@ -183,7 +181,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
-  
+
   // Route for public projects
   app.get('/api/public-projects', async (req: Request, res: Response) => {
     try {
@@ -201,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status,
+            status, 
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -211,12 +209,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         `);
         const submissions = result.rows;
         console.log(`Retrieved ${submissions.length} public project submissions`);
-        
+
         // Set cache control headers
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
-        
         res.json(submissions);
       } finally {
         client.release();
@@ -234,10 +231,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/project-submissions', async (req: Request, res: Response) => {
     try {
       console.log("Received project submission request:", JSON.stringify(req.body, null, 2));
-      
+
       // Validate incoming data
       const validationResult = insertProjectSubmissionSchema.safeParse(req.body);
-      
+
       if (!validationResult.success) {
         console.error('Validation failed:', validationResult.error.format());
         return res.status(400).json({ 
@@ -245,11 +242,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           details: validationResult.error.format()
         });
       }
-      
+
       console.log("Validation passed, creating project submission");
       console.log("Project title:", validationResult.data.title);
       console.log("Project description:", validationResult.data.description?.substring(0, 100));
-      
+
       // Insert with direct SQL for better reliability
       const client = await pool.connect();
       try {
@@ -262,15 +259,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           technology, 
           impact, 
           team, 
-          status,
+          status, 
           visibility,
           userId 
         } = validationResult.data;
-        
+
         console.log("Inserting new project submission via direct SQL...");
-        
+
         const now = new Date();
-        
+
         const result = await client.query(`
           INSERT INTO project_submissions (
             username, 
@@ -294,7 +291,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status,
+            status, 
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -311,7 +308,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           now,
           userId || null
         ]);
-        
+
         const submission = result.rows[0];
         console.log("Project submission created successfully:", submission);
         res.status(201).json(submission);
@@ -336,31 +333,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log("Received draft suggestion request");
       const { question, evalCriteria, context } = req.body;
-      
+
       console.log("Draft request question:", question);
       console.log("Draft request context:", context ? Object.keys(context) : "no context");
-      
+
       if (!question || typeof question !== 'string') {
         console.error("Invalid question format");
         return res.status(400).json({ error: 'Question is required' });
       }
-      
+
       console.log("Calling OpenAI generateDraftResponse...");
-      const suggestion = await generateDraftResponse(question, evalCriteria, context);      console.log("Draft suggestion generated successfully");
-      
+      const suggestion = await generateDraftResponse(question, evalCriteria, context);      
+      console.log("Draft suggestion generated successfully");
+
       res.json({ suggestion });
     } catch (error) {
       console.error('Error generating draft suggestion:', error);
-      
+
       // More detailed error response
       let errorMessage = 'Failed to generate draft suggestion';
       let errorDetails = 'Unknown error';
-      
+
       if (error instanceof Error) {
         errorMessage = error.message;
         errorDetails = error.stack || 'No stack trace';
       }
-      
+
       res.status(500).json({ 
         error: errorMessage,
         details: errorDetails
@@ -381,13 +379,6 @@ app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
       console.error("Invalid question format");
       return res.status(400).json({ error: 'Question is required' });
     }
-
-  });
-  // 5) Final catch-all for unknown API routes
-  app.use("/api", (_req, res) => {
-    res.status(404).json({ error: "API endpoint not found" });
-  });
-
     if (!evalCriteria || typeof evalCriteria !== 'string') {
       console.error("Invalid evalCriteria format");
       return res.status(400).json({ error: 'Evaluation criteria is required' });

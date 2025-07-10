@@ -140,7 +140,6 @@ export default function AdminPanel() {
       team: submission.team,
       status: submission.status,
       username: submission.username,
-
     };
     const markdown = generateMarkdown(markdownData);
     const filename = `${submission.title.replace(/\s+/g, '-').toLowerCase()}.md`;
@@ -236,122 +235,6 @@ export default function AdminPanel() {
           />
         </Suspense>
       )}
-      {/* Submission Details Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          {selectedSubmission && (
-            <>
-              <DialogHeader>
-                <DialogTitle className="text-2xl">{selectedSubmission.title}</DialogTitle>
-                <DialogDescription className="flex flex-wrap gap-3 pt-2">
-                  <Badge variant="outline" className="text-sm">
-                    By {selectedSubmission.username}
-                  </Badge>
-                  <Badge 
-                    variant={getVisibilityColor(selectedSubmission.visibility)} 
-                    className="text-sm flex items-center gap-1"
-                  >
-                    {selectedSubmission.visibility === 'private' && <Lock className="h-3.5 w-3.5" />}
-                    {selectedSubmission.visibility === 'internal' && <Users className="h-3.5 w-3.5" />}
-                    {selectedSubmission.visibility === 'public' && <Globe className="h-3.5 w-3.5" />}
-                    {selectedSubmission.visibility.charAt(0).toUpperCase() + selectedSubmission.visibility.slice(1)}
-                  </Badge>
-                  <Badge variant="outline" className="text-sm">
-                    Status: {selectedSubmission.status}
-                  </Badge>
-                  <Badge variant="outline" className="text-sm">
-                    Submitted: {new Date(selectedSubmission.createdAt).toLocaleDateString()}
-                  </Badge>
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Description</h3>
-                  <p className="text-gray-700">{selectedSubmission.description}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Problem Statement</h3>
-                  <p className="text-gray-700">{selectedSubmission.problem}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Technology Stack</h3>
-                  <p className="text-gray-700">{selectedSubmission.technology}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Impact</h3>
-                  <p className="text-gray-700">{selectedSubmission.impact}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Team</h3>
-                  <p className="text-gray-700">{selectedSubmission.team}</p>
-                </div>
-              </div>
-
-              <div className="flex justify-between gap-2 mt-4">
-                <Button 
-                  variant="destructive"
-                  onClick={() => {
-                    handleCloseDialog();
-                    handleDeleteClick(selectedSubmission);
-                  }}
-                  className="gap-1"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete Submission
-                </Button>
-                
-                <div className="flex gap-2">
-                  <Button 
-                    variant="outline"
-                    onClick={() => handleDownload(selectedSubmission)}
-                    className="gap-1"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download Markdown
-                  </Button>
-                  <Button onClick={handleCloseDialog}>
-                    Close
-                  </Button>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to delete this submission?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the project submission
-              "{submissionToDelete?.title}" from the database.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={cancelDelete}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteMutation.isPending ? (
-                <div className="flex items-center gap-2">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                  Deleting...
-                </div>
-              ) : (
-                <>Delete</>
-              )}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
