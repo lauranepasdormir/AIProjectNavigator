@@ -79,7 +79,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               impact, 
               team, 
               status, 
-              contact,
               visibility,
               created_at AS "createdAt", 
               user_id AS "userId"
@@ -149,8 +148,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status, 
-            contact,
+            status,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -201,8 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status, 
-            contact,
+            status,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -263,8 +260,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           technology, 
           impact, 
           team, 
-          status, 
-          contact,
+          status,
           visibility,
           userId 
         } = validationResult.data;
@@ -282,8 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology,
             impact,
             team,
-            status,
-            contact,
+            status
             visibility,
             created_at,
             user_id
@@ -297,8 +292,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology, 
             impact, 
             team, 
-            status, 
-            contact,
+            status,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -311,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           impact || "",
           team || "",
           status || "In Progress",
-          contact || "",
+          // contact || "",
           visibility || "private",
           now,
           userId || null

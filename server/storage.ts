@@ -95,7 +95,7 @@ export class MemStorage implements IStorage {
       impact: submission.impact,
       team: submission.team ?? "",
       status: submission.status,
-      contact: submission.contact,
+      // contact: submission.contact,
       visibility: submission.visibility ?? "private",
       userId: submission.userId ?? null
     };

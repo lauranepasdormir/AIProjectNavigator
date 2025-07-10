@@ -139,7 +139,7 @@ export default function AdminPanel() {
       impact: submission.impact,
       team: submission.team,
       status: submission.status,
-      contact: submission.contact,
+      // contact: submission.contact,
       username: submission.username,
     };
     const markdown = generateMarkdown(markdownData);
