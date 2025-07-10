@@ -14,6 +14,7 @@ interface ChatInputProps {
   isPreviewMode?: boolean;
   isSaved?: boolean;
   isSaving?: boolean;
+  onEditInput?: (fn: (text: string) => void) => void;
 }
 
 // Define SpeechRecognition interface for TypeScript
@@ -61,13 +62,14 @@ export function ChatInput({
   onBackToChat,
   isPreviewMode = false,
   isSaved = false,
-  isSaving = false
+  isSaving = false,
+  onEditInput
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
   const [isVoiceSupported, setIsVoiceSupported] = useState(true);
-  
+
   // Initialize speech recognition
   useEffect(() => {
     if (typeof SpeechRecognitionAPI !== 'undefined') {
@@ -105,6 +107,10 @@ export function ChatInput({
       }
     };
   }, []);
+
+  useEffect(() => {
+    onEditInput?.((text) => setInputValue(text));
+  }, [onEditInput]);
   
   const startListening = () => {
     if (recognition) {
@@ -139,32 +145,13 @@ export function ChatInput({
   
   if (isPreviewMode) {
     return (
-      <div className="border-t p-3 sm:p-4 bg-white flex flex-col justify-between shadow-inner gap-3">
+      <div className="border-t p-3 sm:p-4 bg-white flex flex-col justify-end shadow-inner gap-3 w-full">
         <Button
           variant="outline"
           onClick={onBackToChat}
-          className="gap-2 py-2 px-4 text-sm sm:text-base self-start rounded-lg"
-        >
+          className="bg-primary text-white hover:bg-primary/90 hover:text-white gap-2 py-2 px-4 text-base sm:text-base self-start rounded-lg"        >
           <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /> Return to Chat
         </Button>
-        
-        <div className="flex justify-center sm:justify-end gap-3 w-full">
-          <Button
-            onClick={onSave}
-            disabled={isSaved || isSaving}
-            className="bg-primary hover:bg-primary/90 gap-2 px-4 py-3 text-base font-medium rounded-lg flex-1 sm:flex-none max-w-xs"
-          >
-            <Database className="h-5 w-5 sm:h-6 sm:w-6" /> 
-            {isSaving ? 'Saving...' : isSaved ? 'Saved' : 'Save Project'}
-          </Button>
-          
-          <Button
-            onClick={onDownload}
-            className="bg-secondary hover:bg-secondary/90 gap-2 px-4 py-3 text-blue-600 text-base font-medium rounded-lg flex-1 sm:flex-none max-w-xs"
-          >
-            <Download className="h-5 w-5 sm:h-6 sm:w-6 text-blue-600" /> Download
-          </Button>
-        </div>
       </div>
     );
   }

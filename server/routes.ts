@@ -5,6 +5,8 @@ import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
 import { generateDraftResponse } from "./openai";
 import { setupAuth, isAuthReady } from "./auth";
+import { generateDraftResponse, generateAnswerSuggestion } from "./openai";
+import { setupAuth } from "./auth";
 import { pool } from "./db";
 import { setupNoAuthProjectSubmissions } from "./disable-auth-for-submissions";
 
@@ -45,7 +47,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Project Submission Routes
   // Admin route - temporarily bypass authentication for debugging
-  app.get('/api/project-submissions', async (req: Request, res: Response) => {
+  app.get('Invalid project submiss', async (req: Request, res: Response) => {
     // Log authentication status but proceed anyway for debugging
     console.log('Project submissions auth status:', req.isAuthenticated() ? 'Authenticated' : 'Not authenticated');
     console.log('Session ID:', req.sessionID);
@@ -278,7 +280,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             technology,
             impact,
             team,
-            status
+            status,
             visibility,
             created_at,
             user_id
@@ -305,7 +307,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           impact || "",
           team || "",
           status || "In Progress",
-          // contact || "",
           visibility || "private",
           now,
           userId || null
@@ -334,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
     try {
       console.log("Received draft suggestion request");
-      const { question, context } = req.body;
+      const { question, evalCriteria, context } = req.body;
       
       console.log("Draft request question:", question);
       console.log("Draft request context:", context ? Object.keys(context) : "no context");
@@ -345,8 +346,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log("Calling OpenAI generateDraftResponse...");
-      const suggestion = await generateDraftResponse(question, context);
-      console.log("Draft suggestion generated successfully");
+      const suggestion = await generateDraftResponse(question, evalCriteria, context);      console.log("Draft suggestion generated successfully");
       
       res.json({ suggestion });
     } catch (error) {
@@ -368,51 +368,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Delete a project submission - using direct access pattern
-  app.delete('/api/project-submissions/:id', async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid ID format' });
-      }
+app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
+  try {
+    console.log("Received draft suggestion request");
+    const { question, evalCriteria, context } = req.body;
 
-      // Use direct SQL for better reliability
-      const client = await pool.connect();
-      try {
-        // First check if the submission exists
-        console.log(`Checking if project submission ID ${id} exists...`);
-        const checkResult = await client.query(`
-          SELECT id FROM project_submissions WHERE id = $1
-        `, [id]);
-        
-        if (checkResult.rowCount === 0) {
-          return res.status(404).json({ error: 'Project submission not found' });
-        }
-        
-        // Delete the submission directly with SQL
-        console.log(`Deleting project submission ID ${id}...`);
-        const deleteResult = await client.query(`
-          DELETE FROM project_submissions WHERE id = $1
-        `, [id]);
-        
-        console.log(`Successfully deleted project submission ID ${id}`);
-        res.status(200).json({ success: true });
-      } finally {
-        client.release();
-      }
-    } catch (error) {
-      console.error('Error deleting project submission:', error);
-      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-      res.status(500).json({ 
-        error: 'Failed to delete project submission',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
+    console.log("Draft request question:", question);
+    console.log("Draft request evalCriteria:", evalCriteria);
+    console.log("Draft request context:", context ? Object.keys(context) : "no context");
+
+    if (!question || typeof question !== 'string') {
+      console.error("Invalid question format");
+      return res.status(400).json({ error: 'Question is required' });
     }
+
   });
   // 5) Final catch-all for unknown API routes
   app.use("/api", (_req, res) => {
     res.status(404).json({ error: "API endpoint not found" });
   });
+
+    if (!evalCriteria || typeof evalCriteria !== 'string') {
+      console.error("Invalid evalCriteria format");
+      return res.status(400).json({ error: 'Evaluation criteria is required' });
+    }
+
+    console.log("Calling OpenAI generateDraftResponse...");
+    const suggestion = await generateDraftResponse(question, evalCriteria, context);
+    console.log("Draft suggestion generated successfully");
+
+    res.json({ suggestion });
+  } catch (error) {
+    console.error('Error generating draft suggestion:', error);
+
+    let errorMessage = 'Failed to generate draft suggestion';
+    let errorDetails = 'Unknown error';
+
+    if (error instanceof Error) {
+      errorMessage = error.message;
+      errorDetails = error.stack || 'No stack trace';
+    }
+
+    res.status(500).json({ 
+      error: errorMessage,
+      details: errorDetails
+    });
+  }
+});
+
+app.post('/api/evaluate-answer', async (req: Request, res: Response) => {
+  try {
+    const { question, answer, evalCriteria, context } = req.body;
+    const result = await generateAnswerSuggestion(question, evalCriteria, answer, context);
+    res.json(result);
+  } catch (error) {
+    console.error('Error evaluating answer:', error);
+    res.status(500).json({ error: 'Failed to evaluate answer' });
+  }
+});
 
   const httpServer = createServer(app);
   return httpServer;

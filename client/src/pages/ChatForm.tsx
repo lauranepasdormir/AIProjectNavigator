@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import { ToyBrick, Database, Download, Link2, Clock } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
 import { questions } from "@/lib/questions";
+import { evalCriteria } from "@/lib/evalCriteria";
 import { generateMarkdown, formatMarkdownToHtml, downloadMarkdown } from "@/lib/markdown";
 import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
@@ -13,11 +14,13 @@ import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+// import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function ChatForm() {
   // State management
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(-1); // Start with -1 to show intro first
+  const [currentCriteria, setCurrentCriteria] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
@@ -26,6 +29,9 @@ export default function ChatForm() {
   const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility' | 'success' | 'profile'>('welcome');
   const [selectedVisibility, setSelectedVisibility] = useState<string>("private"); // Default to private
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
+  const [inputValue, setInputValue] = useState("");
+  const [draftResponse, setDraftResponse] = useState<string | null>(null);
+
   
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -38,6 +44,7 @@ export default function ChatForm() {
       setAnswers({});
       setMessages([]);
       setCurrentQuestion(-1);
+      setCurrentCriteria(0);
       setIsPreviewMode(false);
       setPreviewViewMode('edit');
       setIsSaved(false);
@@ -65,7 +72,11 @@ export default function ChatForm() {
       });
     }
   };
-  
+
+  useEffect(() => {
+    clearProjectData();
+  }, []);
+    
   // Toast notifications
   const { toast } = useToast();
   
@@ -99,17 +110,17 @@ export default function ChatForm() {
   
   // Mutation to generate draft responses
   const generateDraftMutation = useMutation({
-    mutationFn: async ({ question, context }: { question: string; context: Record<string, string> }) => {
+    mutationFn: async ({ question, evalCriteria, context }: { question: string; evalCriteria: string, context: Record<string, string> }) => {
       const response = await apiRequest(
         '/api/draft-suggestion',
         'POST',
-        { question, context }
+        { question, evalCriteria, context }
       );
       return response.json();
     },
     onSuccess: (data) => {
-      // Add user message with isAIGenerated flag set to true
-      addUserMessage(data.suggestion, true);
+      // Add bot message with isAIGenerated flag set to true
+      addExampleMessage(data.suggestion);
       setGeneratingDraftForQuestion(null);
       
       toast({
@@ -193,6 +204,18 @@ export default function ChatForm() {
       }, 500);
     }
   };
+  // Welcome + 2s + Purpose
+  useEffect(() => {
+    if (onboardingStage === 'welcome') {
+      const timeout = setTimeout(() => {
+        setOnboardingStage('purpose');
+        addBotMessage("The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities.");
+      }, 2000); 
+
+      return () => clearTimeout(timeout); 
+    }
+  }, [onboardingStage]);
+
   
   // Scroll to bottom of chat area when messages change
   useEffect(() => {
@@ -215,6 +238,31 @@ export default function ChatForm() {
     
     setMessages(prev => [...prev, newMessage]);
   };
+
+
+  // Add a bot message to the chat
+  const addAdviceMessage = (content: string) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'advice',
+      content,
+      timestamp: new Date()
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
+
+  const addExampleMessage = (content: string) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'example',
+      content,
+      timestamp: new Date(),
+      isAIGenerated: true,
+    };
+    
+    setMessages(prev => [...prev, newMessage]);
+  };
   
   // Add a user message to the chat
   const addUserMessage = (content: string, isAIGenerated: boolean = false) => {
@@ -223,66 +271,172 @@ export default function ChatForm() {
       type: 'user',
       content,
       timestamp: new Date(),
-      isAIGenerated
     };
     
     setMessages(prev => [...prev, newMessage]);
   };
-  
-  // Handle user input submission
-  const handleSubmit = (value: string) => {
-    // Add user message
-    addUserMessage(value);
+
+
+  const addNextMessage = (content: string, isAIGenerated: boolean = false) => {
+    const newMessage: ChatMessage = {
+      id: uuidv4(),
+      type: 'next',
+      content,
+      timestamp: new Date(),
+    };
     
-    // If we're in the onboarding stages, proceed to the next stage
+    setMessages(prev => [...prev, newMessage]);
+  };
+
+  // Go to next question directly without advice
+  const nextQuestion = (userInput: string, question: (typeof questions)[number]): string => {
+    return `Great! Let's move on.`;
+  };
+
+  // Generate advice
+  const generateAdvice = async (
+    userInput: string,
+    questionObj: (typeof questions)[number],
+    context: Record<string, string>
+  ): Promise<string> => {
+    // Find the criteria text for this question
+    const criteriaObj = evalCriteria.find(c => c.question === questionObj.id);
+    const criteriaText = criteriaObj?.text || "";
+
+    try {
+      const response = await apiRequest(
+        '/api/evaluate-answer',
+        'POST',
+        {
+          question: questionObj.text,
+          answer: userInput,
+          evalCriteria: criteriaText,
+          context
+        }
+      );
+      const data = await response.json();
+      // Return the AI's feedback as advice
+      console.log("AI feedback:", data.feedback);
+      return data.feedback || "Thanks for your response!";
+    } catch (error) {
+      console.error("Error generating advice:", error);
+      return "Sorry, I couldn't generate advice at this time.";
+    }
+  };
+
+  const [showNextButton, setShowNextButton] = useState(false);
+  // User ignores recommendations or example given and goes to the next question
+  const handleNextQuestion = () => {
+    setCurrentQuestion(prev => prev + 1);
+    if (currentQuestion + 1 < questions.length) {
+      setTimeout(() => {
+        addBotMessage(questions[currentQuestion + 1].text);
+      }, 500);
+    } else {
+      // Show completion message
+      setTimeout(() => {
+        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+      }, 500);
+    }
+    setShowNextButton(false);
+  };
+
+  const handleIgnoreButton = () => {
+    addNextMessage("Ok, let's move on.");
+    setCurrentQuestion(prev => prev + 1);
+    if (currentQuestion + 1 < questions.length) {
+      setTimeout(() => {
+        addBotMessage(questions[currentQuestion + 1].text);
+      }, 500);
+    } else {
+      // Show completion message
+      setTimeout(() => {
+        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+      }, 500);
+    }
+    setShowNextButton(false);
+  };
+  
+  const handleSubmit = async (value: string) => {
+    addUserMessage(value);
+
     if (onboardingStage !== 'questions') {
       proceedToNextOnboardingStage();
       return;
     }
-    
-    // Skip empty required answers for questions
+
     if (!value && currentQuestion >= 0 && questions[currentQuestion]?.required) {
       addBotMessage("This field is required. Please provide an answer.");
       return;
     }
-    
-    // Save answer
+
     if (currentQuestion >= 0) {
-      const updatedAnswers = { ...answers };
-      updatedAnswers[questions[currentQuestion].id] = value;
-      setAnswers(updatedAnswers);
-      
-      // Save answers to localStorage
-      try {
-        localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
-      } catch (error) {
-        console.error('Error saving to localStorage:', error);
-      }
-      
-      // Move to next question
-      setCurrentQuestion(prev => prev + 1);
-      
-      // If there are more questions, show the next one
-      if (currentQuestion + 1 < questions.length) {
-        setTimeout(() => {
-          addBotMessage(questions[currentQuestion + 1].text);
-        }, 500);
+      // Find the criteria text for this question
+      const questionId = questions[currentQuestion]?.id;
+      const criteriaObj = evalCriteria.find(c => c.question === questionId);
+      const criteriaText = criteriaObj?.text || "";
+
+      // Evaluate the answer with the backend/AI
+      const { feedback, satisfied } = await evaluateAnswerMutation.mutateAsync({
+        question: questions[currentQuestion].text,
+        answer: value,
+        evalCriteria: criteriaText,
+        context: answers
+      });
+
+      if (satisfied) {
+        // Save answer and move to next question
+        const updatedAnswers = { ...answers, [questions[currentQuestion].id]: value };
+        setAnswers(updatedAnswers);
+        try {
+          localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+        } catch (error) {
+          console.error('Error saving to localStorage:', error);
+        }
+        setCurrentQuestion(prev => prev + 1);
+        setCurrentCriteria(prev => prev + 1);
+
+        if (currentQuestion + 1 < questions.length) {
+          setTimeout(() => {
+            addBotMessage(questions[currentQuestion + 1].text);
+          }, 500);
+        } else {
+          setTimeout(() => {
+            addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+          }, 500);
+        }
       } else {
-        // Show completion message
-        setTimeout(() => {
-          addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
-        }, 500);
+         // Not satisfied: show feedback and let user revise
+        const advice = await generateAdvice(
+          value,
+          questions[currentQuestion],
+          answers
+        );
+        addAdviceMessage(advice);
+
+        // Do not advance currentQuestion; user stays on the same question
       }
     }
   };
-  
-  // Handle previous button click
-  const handlePrevious = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(prev => prev - 1);
-      addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
-    }
-  };
+
+    // edit input by copying pervious messages
+    const editInputRef = useRef<((text: string) => void) | null>(null);
+
+    const editInput = (text: string) => {
+      if (editInputRef.current) {
+        editInputRef.current(text);
+      }
+    };
+
+    
+    // Handle previous button click
+    const handlePrevious = () => {
+      if (currentQuestion > 0) {
+        setCurrentQuestion(prev => prev - 1);
+        setCurrentCriteria(prev => prev - 1);
+        addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
+      }
+    };
   
   // Handle skip button click
   const handleSkip = () => {
@@ -301,6 +455,7 @@ export default function ChatForm() {
       }
       
       setCurrentQuestion(prev => prev + 1);
+      setCurrentCriteria(prev => prev + 1);
       
       if (currentQuestion + 1 < questions.length) {
         setTimeout(() => {
@@ -415,22 +570,41 @@ export default function ChatForm() {
   
   // Handle draft generation request
   const handleDraftRequest = (question: string) => {
-    // Save the question content to track which question is being processed
-    setGeneratingDraftForQuestion(question);
-    
-    // Debug log to see what context is being sent
-    console.log("Sending draft request with context:", JSON.stringify(answers, null, 2));
-    
-    // Generate the draft using the OpenAI API
-    generateDraftMutation.mutate({
-      question,
-      context: answers // Pass the current answers as context
-    });
-  };
-  
+  setGeneratingDraftForQuestion(question);
+
+  // Find the criteria object that matches the current question's id
+  const questionId = questions[currentQuestion]?.id;
+  const criteriaObj = evalCriteria.find(c => c.question === questionId);
+
+  // Use the .text property if found, otherwise fallback to empty string
+  const criteriaText = criteriaObj?.text || "";
+
+  console.log("Sending draft request with context:", JSON.stringify(answers, null, 2));
+  console.log("Sending evalCriteria:", criteriaText);
+
+  generateDraftMutation.mutate({
+    question,
+    evalCriteria: criteriaText,
+    context: answers
+  });
+};
+
+  const evaluateAnswerMutation = useMutation({
+    mutationFn: async ({ question, answer, evalCriteria, context }: { question: string; answer: string; evalCriteria: string; context: Record<string, string> }) => {
+      const response = await apiRequest(
+        '/api/evaluate-answer',
+        'POST',
+        { question, answer, evalCriteria, context }
+      );
+      return response.json();
+    }
+  });  
+
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);
   const htmlContent = formatMarkdownToHtml(markdownContent);
+  // const [llm, setLLM] = useState("gpt-4o");
+
   
   return (
     <div className="flex flex-col min-h-screen">
@@ -441,6 +615,18 @@ export default function ChatForm() {
             <div className="flex items-center">
               <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
               <h1 className="text-lg sm:text-xl font-semibold">Submit Your AI Project</h1>
+    
+              {/* <Select defaultValue="gpt-4o" onValueChange={(value) => setLLM(value)}>
+                <SelectTrigger className="w-[120px] bg-white text-primary text-sm h-8 border-none shadow-sm">
+                  <SelectValue placeholder="LLM" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                  <SelectItem value="gpt-3.5-turbo">GPT-3.5</SelectItem>
+                  <SelectItem value="claude-3">Claude 3</SelectItem>
+                  <SelectItem value="llama-3">LLaMA 3</SelectItem> 
+                </SelectContent>
+              </Select> */}
             </div>
             <Button 
               variant="secondary" 
@@ -474,6 +660,9 @@ export default function ChatForm() {
                   onRequestDraft={!isComplete ? handleDraftRequest : undefined}
                   currentQuestion={currentQuestion}
                   isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}
+                  onIgnore={handleIgnoreButton}
+                  nextQuestion={handleNextQuestion}
+                  onEdit={(text) => editInput(text)}
                 />
               ))}
             </div>
@@ -529,7 +718,7 @@ export default function ChatForm() {
 
           {/* Input Area */}
           <div className="mt-auto">
-            {onboardingStage === 'welcome' && (
+            {/* {onboardingStage === 'welcome' && (
               <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
                 <div className="flex justify-center">
                   <Button
@@ -540,7 +729,7 @@ export default function ChatForm() {
                   </Button>
                 </div>
               </div>
-            )}
+            )} */}
             
             {onboardingStage === 'purpose' && (
               <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
@@ -556,10 +745,32 @@ export default function ChatForm() {
             )}
             
             {onboardingStage === 'questions' && !isPreviewMode && (
+              currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion].type === "dropdown" ? (
+                <form
+                  onSubmit={e => {
+                    e.preventDefault();
+                    const value = (e.target as any).elements[0].value;
+                    handleSubmit(value);
+                    setDraftResponse(value);
+                  }}
+                  className="border-t p-2 sm:p-3 bg-white flex flex-col gap-2"
+                >
+
+                  <select required={questions[currentQuestion].required} className="border rounded px-2 py-1">
+                    <option value="">Select status</option>
+                    {questions[currentQuestion].options?.map(option =>
+                      typeof option === "string" ? (
+                        <option key={option} value={option}>{option}</option>
+                      ) : (
+                        <option key={option.value} value={option.value}>{option.label}</option>
+                      )
+                    )}
+                  </select>
+                  <button type="submit" className="mt-2 px-4 py-2 bg-primary text-white rounded">Next</button>
+                </form>
+              ) : (
               <ChatInput 
                 placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
-                onSubmit={handleSubmit}
-                isComplete={isComplete}
                 onShowPreview={
                   currentQuestion >= questions.length
                     ? () => {
@@ -569,13 +780,19 @@ export default function ChatForm() {
                       }
                     : undefined
                 }
+                onSubmit={handleSubmit}
+                isComplete={isComplete}
                 onDownload={handleDownload}
                 onSave={handleSaveToDatabase}
                 onBackToChat={handleBackToChat}
                 isPreviewMode={false}
                 isSaved={isSaved}
                 isSaving={submitProjectMutation.isPending}
+                onEditInput={(fn) => {
+                  editInputRef.current = fn;
+                }}
               />
+              )
             )}
             
             {/* Input area for preview mode */}

@@ -63,7 +63,6 @@ const sampleProjects = [
     impact: "Reduces image tagging time by 85% while improving accuracy to 96%, enabling faster content management.",
     team: "Alex Johnson, Maria Rodriguez, Sam Patel",
     status: "In Progress",
-    contact: "alex.johnson@example.com",
     visibility: "public"
   },
   {
@@ -75,7 +74,6 @@ const sampleProjects = [
     impact: "Reduces household energy consumption by 22% on average, saving costs and reducing carbon footprint.",
     team: "Jamie Smith, Riley Cooper",
     status: "Completed",
-    contact: "jamie.smith@example.com",
     visibility: "internal"
   },
   {
@@ -87,7 +85,6 @@ const sampleProjects = [
     impact: "Accelerates quantum computing research by providing optimized, ready-to-use algorithm implementations.",
     team: "Dr. Quinn Zhang, Maya Patel, Jordan Lee",
     status: "In Progress",
-    contact: "qzhang@example.com",
     visibility: "private"
   }
 ];

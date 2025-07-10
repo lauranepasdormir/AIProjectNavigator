@@ -143,7 +143,6 @@ The application uses two main tables:
 - `impact` - Project impact
 - `team` - Team information
 - `status` - Current status
-- `contact` - Contact information
 - `visibility` - Public/private/internal
 - `createdAt` - Timestamp
 - `userId` - Foreign key to users (optional)

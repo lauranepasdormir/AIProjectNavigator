@@ -19,7 +19,6 @@ export const projectSubmissions = pgTable("project_submissions", {
   impact: text("impact").notNull(),
   team: text("team").notNull().default(""),
   status: text("status").notNull(),
-  // contact: text("contact").notNull(),
   visibility: text("visibility").notNull().default("private"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   userId: integer("user_id").references(() => users.id),
@@ -44,7 +43,7 @@ export type ProjectSubmission = typeof projectSubmissions.$inferSelect;
 // Chat message type for frontend
 export interface ChatMessage {
   id: string;
-  type: 'bot' | 'user';
+  type: 'bot' | 'user' | 'advice' | 'example' | 'next';
   content: string;
   timestamp: Date;
   isAIGenerated?: boolean;
