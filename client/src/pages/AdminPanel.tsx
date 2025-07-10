@@ -9,8 +9,6 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import SearchFilterBar from "@/components/admin/SearchFilterBar";
 import SubmissionTable from "@/components/admin/SubmissionTable";
 
-
-
 import SetupPage from "@/pages/SetupPage";
 
 // Lazy-load dialog components
@@ -154,6 +152,7 @@ export default function AdminPanel() {
   const confirmDelete = () => {
     if (submissionToDelete) {
       deleteMutation.mutate(submissionToDelete.id);
+      console.log(`Deleted submission with ID: ${submissionToDelete.id}`);
     }
   };
 

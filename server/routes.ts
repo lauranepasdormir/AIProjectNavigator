@@ -126,61 +126,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get a specific project - requires authentication for private/internal projects
-  app.get('/api/project-submissions/:id', async (req: Request, res: Response) => {
-    try {
-      const id = parseInt(req.params.id);
+  // app.get('/api/project-submissions/:id', async (req: Request, res: Response) => {
+  //   try {
+  //     const id = parseInt(req.params.id);
+  //     if (isNaN(id)) {
+  //       return res.status(400).json({ error: 'Invalid ID format' });
+  //     }
+
+  //     // Use direct SQL for better reliability
+  //     const client = await pool.connect();
+  //     try {
+  //       console.log(`Fetching project submission ID ${id} via direct SQL...`);
+
+  //       const result = await client.query(`
+  //         SELECT 
+  //           id, 
+  //           username, 
+  //           title, 
+  //           description, 
+  //           problem, 
+  //           technology, 
+  //           impact, 
+  //           team, 
+  //           status, 
+  //           visibility,
+  //           created_at AS "createdAt",
+  //           user_id AS "userId"
+  //         FROM project_submissions
+  //         WHERE id = $1
+  //       `, [id]);
+
+  //       const submission = result.rows[0];
+
+  //       if (!submission) {
+  //         return res.status(404).json({ error: 'Project submission not found' });
+  //       }
+
+  //       // Only allow access to public projects if not authenticated
+  //       if (!req.isAuthenticated() && submission.visibility !== 'public') {
+  //         return res.status(401).json({ error: 'Authentication required to view this project' });
+  //       }
+
+  //       console.log(`Successfully retrieved project submission ID ${id}`);
+  //       res.json(submission);
+  //     } finally {
+  //       client.release();
+  //     }
+  //   } catch (error) {
+  //     console.error('Error fetching project submission:', error);
+  //     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+  //     res.status(500).json({ 
+  //       error: 'Failed to fetch project submission',
+  //       message: error instanceof Error ? error.message : 'Unknown error'
+  //     });
+  //   }
+  // });
+
+
+  // DELETE a project submission
+  app.delete(
+    "/api/project-submissions/:id",
+    isAuthenticated,           // or whatever auth middleware you use
+    async (req: Request, res: Response) => {
+      const id = parseInt(req.params.id, 10);
       if (isNaN(id)) {
-        return res.status(400).json({ error: 'Invalid ID format' });
+        return res.status(400).json({ error: "Invalid ID" });
       }
 
-      // Use direct SQL for better reliability
-      const client = await pool.connect();
       try {
-        console.log(`Fetching project submission ID ${id} via direct SQL...`);
-
-        const result = await client.query(`
-          SELECT 
-            id, 
-            username, 
-            title, 
-            description, 
-            problem, 
-            technology, 
-            impact, 
-            team, 
-            status, 
-            visibility,
-            created_at AS "createdAt", 
-            user_id AS "userId"
-          FROM project_submissions 
-          WHERE id = $1
-        `, [id]);
-
-        const submission = result.rows[0];
-
-        if (!submission) {
-          return res.status(404).json({ error: 'Project submission not found' });
+        const client = await pool.connect();
+        try {
+          const result = await client.query(
+            "DELETE FROM project_submissions WHERE id = $1 RETURNING id",
+            [id]
+          );
+          if (result.rowCount === 0) {
+            return res.status(404).json({ error: "Not found" });
+          }
+          // success
+          res.json({ success: true });
+        } finally {
+          client.release();
         }
-
-        // Only allow access to public projects if not authenticated
-        if (!req.isAuthenticated() && submission.visibility !== 'public') {
-          return res.status(401).json({ error: 'Authentication required to view this project' });
-        }
-
-        console.log(`Successfully retrieved project submission ID ${id}`);
-        res.json(submission);
-      } finally {
-        client.release();
+      } catch (err) {
+        console.error("Error deleting submission:", err);
+        res.status(500).json({ error: "Failed to delete submission" });
       }
-    } catch (error) {
-      console.error('Error fetching project submission:', error);
-      console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-      res.status(500).json({ 
-        error: 'Failed to fetch project submission',
-        message: error instanceof Error ? error.message : 'Unknown error'
-      });
     }
-  });
+  );
+
 
   // Route for public projects
   app.get('/api/public-projects', async (req: Request, res: Response) => {

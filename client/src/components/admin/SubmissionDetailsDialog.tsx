@@ -79,10 +79,6 @@ export default function SubmissionDetailsDialog({
               <h3 className="text-lg font-semibold">Team</h3>
               <p className="text-gray-700">{submission.team}</p>
             </div>
-            {/* <div className="space-y-2">
-              <h3 className="text-lg font-semibold">Contact</h3>
-              <p className="text-gray-700">{submission.contact}</p>
-            </div> */}
           </div>
 
           <div className="flex justify-between gap-2 mt-4">
