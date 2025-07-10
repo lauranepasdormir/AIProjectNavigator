@@ -31,7 +31,7 @@ export default function ChatForm() {
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
   const [inputValue, setInputValue] = useState("");
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
-
+  const lastUserInputRef = useRef<string | null>(null);
   
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -341,24 +341,42 @@ export default function ChatForm() {
     setShowNextButton(false);
   };
 
-  const handleIgnoreButton = () => {
-    addNextMessage("Ok, let's move on.");
-    setCurrentQuestion(prev => prev + 1);
-    if (currentQuestion + 1 < questions.length) {
-      setTimeout(() => {
-        addBotMessage(questions[currentQuestion + 1].text);
-      }, 500);
-    } else {
-      // Show completion message
-      setTimeout(() => {
-        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
-      }, 500);
+const handleIgnoreButton = () => {
+  addNextMessage("Ok, let's move on.");
+
+  if (currentQuestion >= 0 && currentQuestion < questions.length) {
+    const questionId = questions[currentQuestion].id;
+    const lastUserInput = lastUserInputRef.current ?? "";
+
+    const updatedAnswers = { ...answers, [questionId]: lastUserInput };
+    setAnswers(updatedAnswers);
+
+    try {
+      localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
     }
-    setShowNextButton(false);
-  };
+  }
+
+  // Proceed to next question
+  setCurrentQuestion(prev => prev + 1);
+  if (currentQuestion + 1 < questions.length) {
+    setTimeout(() => {
+      addBotMessage(questions[currentQuestion + 1].text);
+    }, 500);
+  } else {
+    // Show completion message
+    setTimeout(() => {
+      addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+    }, 500);
+  }
+  setShowNextButton(false);
+};
+
   
   const handleSubmit = async (value: string) => {
     addUserMessage(value);
+    lastUserInputRef.current = value;
 
     if (onboardingStage !== 'questions') {
       proceedToNextOnboardingStage();
@@ -651,7 +669,7 @@ export default function ChatForm() {
           ) : (
             <div 
               ref={chatAreaRef}
-              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh] "
+              className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 min-h-[350px] sm:min-h-[400px] max-h-[50vh] sm:max-h-[60vh]"
             >
               {messages.map(message => (
                 <ChatBubble 

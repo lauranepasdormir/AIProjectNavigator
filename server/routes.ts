@@ -281,7 +281,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             visibility,
             created_at,
             user_id
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           RETURNING 
             id, 
             username, 

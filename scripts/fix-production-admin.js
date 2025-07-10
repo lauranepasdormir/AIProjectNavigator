@@ -153,10 +153,10 @@ async function testDatabaseWithDiagnostics() {
           ) VALUES 
           ('demo_user', 'Sample Project 1', 'This is a sample project for testing', 
            'Solved test problem', 'SQL, Node.js', 'Improved testing', 
-           'Demo Team', 'Completed', 'demo@example.com', 'public', NOW()),
+           'Demo Team', 'Completed', 'public', NOW()),
           ('admin', 'Admin Project', 'Admin created project', 
            'Admin problem', 'React, TypeScript', 'Enhanced admin tools', 
-           'Admin Team', 'In Progress', 'admin@example.com', 'private', NOW())
+           'Admin Team', 'In Progress', 'private', NOW())
         `);
         
         console.log('✓ Sample project submissions created');
