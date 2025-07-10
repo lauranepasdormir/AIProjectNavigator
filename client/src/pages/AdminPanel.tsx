@@ -244,7 +244,6 @@ export default function AdminPanel() {
       impact: submission.impact,
       team: submission.team,
       status: submission.status,
-      contact: submission.contact
     };
     
     // Generate markdown and download
@@ -523,11 +522,6 @@ export default function AdminPanel() {
                 <div className="space-y-2">
                   <h3 className="text-lg font-semibold">Team</h3>
                   <p className="text-gray-700">{selectedSubmission.team}</p>
-                </div>
-
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">Contact</h3>
-                  <p className="text-gray-700">{selectedSubmission.contact}</p>
                 </div>
               </div>
 

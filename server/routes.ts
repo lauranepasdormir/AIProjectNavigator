@@ -75,7 +75,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
               impact, 
               team, 
               status, 
-              contact,
               visibility,
               created_at AS "createdAt", 
               user_id AS "userId"
@@ -146,7 +145,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             impact, 
             team, 
             status, 
-            contact,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -198,7 +196,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             impact, 
             team, 
             status, 
-            contact,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -260,7 +257,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           impact, 
           team, 
           // status, 
-          // contact,
           visibility,
           userId 
         } = validationResult.data;
@@ -279,7 +275,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             impact,
             team,
             status,
-            contact,
             visibility,
             created_at,
             user_id
@@ -294,7 +289,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
             impact, 
             team, 
             status, 
-            contact,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"
@@ -307,7 +301,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
           impact || "",
           team || "",
           status || "In Progress",
-          contact || "",
           visibility || "private",
           now,
           userId || null
@@ -336,7 +329,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
     try {
       console.log("Received draft suggestion request");
-      const { question, context } = req.body;
+      const { question, evalCriteria, context } = req.body;
       
       console.log("Draft request question:", question);
       console.log("Draft request context:", context ? Object.keys(context) : "no context");
@@ -347,8 +340,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       console.log("Calling OpenAI generateDraftResponse...");
-      const suggestion = await generateDraftResponse(question, context);
-      console.log("Draft suggestion generated successfully");
+      const suggestion = await generateDraftResponse(question, evalCriteria, context);      console.log("Draft suggestion generated successfully");
       
       res.json({ suggestion });
     } catch (error) {

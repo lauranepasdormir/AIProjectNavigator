@@ -149,7 +149,7 @@ async function testDatabaseWithDiagnostics() {
         await client.query(`
           INSERT INTO project_submissions (
             username, title, description, problem, technology, impact, 
-            team, status, contact, visibility, created_at
+            team, status, visibility, created_at
           ) VALUES 
           ('demo_user', 'Sample Project 1', 'This is a sample project for testing', 
            'Solved test problem', 'SQL, Node.js', 'Improved testing', 
@@ -175,7 +175,6 @@ async function testDatabaseWithDiagnostics() {
           "impact" text NOT NULL,
           "team" text NOT NULL DEFAULT '',
           "status" text NOT NULL,
-          "contact" text NOT NULL,
           "visibility" text NOT NULL DEFAULT 'private',
           "created_at" timestamp NOT NULL DEFAULT NOW(),
           "user_id" integer

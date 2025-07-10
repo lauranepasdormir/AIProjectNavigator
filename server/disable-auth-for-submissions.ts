@@ -28,7 +28,6 @@ export function setupNoAuthProjectSubmissions(app: Express, pool: Pool) {
             impact, 
             team, 
             status, 
-            contact,
             visibility,
             created_at AS "createdAt", 
             user_id AS "userId"

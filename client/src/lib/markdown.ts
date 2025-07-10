@@ -7,7 +7,6 @@ interface ProjectData {
   impact?: string;
   team?: string;
   status?: string;
-  contact?: string;
   visibility?: string;
 }
 
@@ -40,10 +39,6 @@ export function generateMarkdown(data: ProjectData): string {
   
   if (data.status) {
     markdown += `## Current Status\n${data.status}\n\n`;
-  }
-  
-  if (data.contact) {
-    markdown += `## Contact Information\n${data.contact}\n\n`;
   }
   
   if (data.visibility) {

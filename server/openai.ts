@@ -32,6 +32,9 @@ export async function generateDraftResponse(question: string, evalCriteria: stri
         }
       });
     }
+
+    console.log("WORLDDDDDD" , contextString)
+    
 const criteria = evalDict[question];
     // Build the prompt including the evaluation criteria
     const prompt = `
@@ -118,6 +121,8 @@ export async function generateAnswerSuggestion(
         }
       });
     }
+
+    console.log("HELLOOOOOOOOO" , contextString)
 
     // Build the prompt for evaluation
     const prompt = `
