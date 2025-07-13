@@ -364,6 +364,9 @@ export default function ChatForm() {
       }, 500);
     }
     setShowNextButton(false);
+
+    editInput("");
+
   };
   
   const handleSubmit = async (value: string) => {
