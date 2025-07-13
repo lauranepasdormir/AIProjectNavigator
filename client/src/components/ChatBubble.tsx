@@ -9,9 +9,12 @@ import { Copy } from "lucide-react";
 
 interface ChatBubbleProps {
   message: ChatMessage;
+  index: number;
+  answers: Record<string, string>;
   onRequestDraft?: (question: string) => void;
   currentQuestion?: number;
   isGeneratingDraft?: boolean;
+
 
   // showIgnoreButton?: boolean;
   onIgnore?: () => void;
@@ -22,6 +25,8 @@ interface ChatBubbleProps {
 
 export function ChatBubble({ 
   message, 
+  index,
+  answers,
   onRequestDraft, 
   currentQuestion,
   isGeneratingDraft = false,
@@ -37,7 +42,8 @@ export function ChatBubble({
   const isUser = message.type === 'user' && !isAdvice && !isNext && !isExample;
   const isAIGenerated = message.isAIGenerated || message.type === 'example';
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  
+  const isCurrentQuestion = typeof currentQuestion === 'number' && message.questionId === currentQuestion;
+
   // Define keywords that indicate a non-draftable message
   const noDraftButtonKeywords = [
     "preview your project",
@@ -63,36 +69,27 @@ export function ChatBubble({
     && onRequestDraft 
     && typeof currentQuestion === 'number' 
     && currentQuestion >= 2
-    && !containsKeyword(message.content);
+    && !containsKeyword(message.content)
+    && isCurrentQuestion;
 
-  const showIgnoreButton = (isAdvice || isExample)
+  const showIgnoreButton = isAdvice
     && onRequestDraft 
-    && !containsKeyword(message.content);
+    && !containsKeyword(message.content)
+    && isCurrentQuestion;
 
 
   const showNextButton = isNext
     && onRequestDraft 
-    && !containsKeyword(message.content);
+    && !containsKeyword(message.content)
+    && isCurrentQuestion;
 
-  const { toast } = useToast();
-  const handleCopy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      toast({
-        title: "Copied!",
-        description: "Message copied to clipboard.",
-      });
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: "Failed to copy.",
-        variant: "destructive",
-      });
-    }
-  };
-
+  const showEditButton = isAdvice
+    && onRequestDraft 
+    && !containsKeyword(message.content)
+    && isCurrentQuestion;
   
   return (
+    
     <div className={cn(
       "flex items-start mb-4",
       !isBot && "justify-end"
@@ -126,7 +123,7 @@ export function ChatBubble({
             )}
             <p className="text-sm sm:text-base break-words">{message.content}</p>
 
-            {isUser && (
+            {/* {isUser && (
               <div className="mt-2 text-right">
                 <Button
                   variant="ghost"
@@ -138,10 +135,10 @@ export function ChatBubble({
                   Edit
                 </Button>
               </div>
-            )}
+            )} */}
 
-            {(showDraftButton || showIgnoreButton || showNextButton) && (
-              <div className="mt-2 pt-2 border-t border-gray-200 flex gap-2">
+            { (showDraftButton || showIgnoreButton || showNextButton || showEditButton) && (
+              <div className="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3">
                 {showDraftButton && (
                   <Button 
                     variant="outline" 
@@ -164,11 +161,24 @@ export function ChatBubble({
                   </Button>
                 )}
 
+                {showEditButton && (
+                  <Button
+                    variant="outline" 
+                    size="sm" 
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium flex items-center"
+                    // onClick={() => onEdit?.(message.content)}
+                    onClick={() => onEdit?.(answers[questions[currentQuestion]?.id] || "")}                  
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Edit previous response
+                  </Button>
+                )}
+
                 {showIgnoreButton && (
                   <Button
                     variant="outline" 
                     size="sm" 
-                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    className="text-xs text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-800 font-medium"
                     onClick={onIgnore}
                   >
                     Ignore
@@ -179,7 +189,7 @@ export function ChatBubble({
                   <Button
                     variant="outline" 
                     size="sm" 
-                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    className="text-xs text-green-600 border-green-300 hover:bg-green-50 hover:text-green-700 font-medium"
                     onClick={nextQuestion}
                   >
                     Next Question
@@ -187,6 +197,7 @@ export function ChatBubble({
                 )}
               </div>
             )}
+
 
             
             {/* {showDraftButton && (

@@ -299,7 +299,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } = validationResult.data;
 
         console.log("Inserting new project submission via direct SQL...");
+        // console.error("ValidationResult Data:", validationResult.data);
+        console.log("DEBUG - validationResult.data:", validationResult.data);
 
+        
         const now = new Date();
 
         const result = await client.query(`
