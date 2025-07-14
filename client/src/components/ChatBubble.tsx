@@ -68,7 +68,7 @@ export function ChatBubble({
   const showDraftButton = isAdvice
     && onRequestDraft 
     && typeof currentQuestion === 'number' 
-    && currentQuestion >= 2
+    && currentQuestion >= 1
     && !containsKeyword(message.content)
     && isCurrentQuestion;
 
