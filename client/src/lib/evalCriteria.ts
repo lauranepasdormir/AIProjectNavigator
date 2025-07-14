@@ -6,6 +6,11 @@ export interface Criteria {
 
 export const evalCriteria: Criteria[] = [
   {
+    id : 0,
+    text: "No evaluation needed - IGNORE",
+    question: "username"
+  },
+  {
     id: 1,
     text: "2-10 words in length (do not mention the word limit in your advice)",
     question: "title"
@@ -29,5 +34,10 @@ export const evalCriteria: Criteria[] = [
     id: 5,
     text: "States at least one potential impact and its business value, identifies a beneficiary or affected group, relevant to the problem definition, and it states an impact in at least one of the following areas : social, economincal, technological, environmental",
     question: "impact"
+  },
+  {
+    id: 6,
+    text: "No evaluation needed - IGNORE",
+    question: "status"
   }
 ];

@@ -22,7 +22,7 @@ export const questions: Question[] = [
   },
   {
     id: 'description',
-    text: "Can you briefly describe what your project does, who it's for, and the effect it aims to have in its industry?.",
+    text: "Can you briefly describe what your project does, who it's for, and the effect it aims to have in its industry?",
     required: true,
     placeholder: "Describe your project"
   },
