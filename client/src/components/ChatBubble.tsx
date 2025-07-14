@@ -14,6 +14,7 @@ interface ChatBubbleProps {
   onRequestDraft?: (question: string) => void;
   currentQuestion?: number;
   isGeneratingDraft?: boolean;
+  messages: ChatMessage[];
 
 
   // showIgnoreButton?: boolean;
@@ -33,7 +34,8 @@ export function ChatBubble({
   // showIgnoreButton = false,
   onIgnore,
   nextQuestion,
-  onEdit
+  onEdit,
+  messages
 }: ChatBubbleProps) {
   const isAdvice = message.type === 'advice';
   const isNext = message.type === 'next';
@@ -87,6 +89,16 @@ export function ChatBubble({
     && onRequestDraft 
     && !containsKeyword(message.content)
     && isCurrentQuestion;
+
+  const isLastAdviceForCurrentQuestion = (() => {
+    if (!isAdvice || typeof currentQuestion !== 'number') return false;
+
+    const relevantAdvice = messages
+        .filter(msg => msg.type === 'advice' && msg.questionId === currentQuestion);
+
+    return relevantAdvice.length > 0 && relevantAdvice[relevantAdvice.length - 1] === message;
+  })();
+
   
   return (
     
@@ -137,7 +149,7 @@ export function ChatBubble({
               </div>
             )} */}
 
-            { (showDraftButton || showIgnoreButton || showNextButton || showEditButton) && (
+            { isLastAdviceForCurrentQuestion && (showDraftButton || showIgnoreButton || showEditButton) && (
               <div className="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3">
                 {showDraftButton && (
                   <Button 
@@ -185,7 +197,7 @@ export function ChatBubble({
                   </Button>
                 )}
 
-                {showNextButton && (
+                {/* {showNextButton && (
                   <Button
                     variant="outline" 
                     size="sm" 
@@ -194,7 +206,7 @@ export function ChatBubble({
                   >
                     Next Question
                   </Button>
-                )}
+                )} */}
               </div>
             )}
 

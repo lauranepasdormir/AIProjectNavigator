@@ -710,6 +710,7 @@ const handleIgnoreButton = () => {
                   onIgnore={handleIgnoreButton}
                   nextQuestion={handleNextQuestion}
                   onEdit={(text) => editInput(text)}
+                  messages={messages}
                 />
               ))}
             </div>
