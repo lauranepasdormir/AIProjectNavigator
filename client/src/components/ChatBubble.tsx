@@ -40,7 +40,7 @@ export function ChatBubble({
   const isAdvice = message.type === 'advice';
   const isNext = message.type === 'next';
   const isExample = message.type === 'example';
-  const isBot = message.type === 'bot' || isAdvice || isNext;
+  const isBot = message.type === 'bot' || isAdvice || isNext || isExample;
   const isUser = message.type === 'user' && !isAdvice && !isNext && !isExample;
   const isAIGenerated = message.isAIGenerated || message.type === 'example';
   const time = message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -116,8 +116,7 @@ export function ChatBubble({
         <div className="w-full">
           <div className={cn(
             "rounded-lg p-2 sm:p-3 inline-block w-full",
-            isBot ? "bg-gray-100" : isAIGenerated ? "bg-amber-50 text-gray-800" : "bg-primary text-white"
-          )}>
+            isAIGenerated ? "bg-amber-50 text-gray-800" : isBot ? "bg-gray-100" : "bg-primary text-white")}>
             {isAIGenerated && (
               <div className="mb-1 flex items-center">
                 <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full inline-block">AI Example</span>
