@@ -344,7 +344,7 @@ export default function ChatForm() {
     } else {
       // Show completion message
       setTimeout(() => {
-        addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+        addBotMessage("Thanks for providing all the information!");
       }, 500);
     }
     setShowNextButton(false);
@@ -376,9 +376,9 @@ const handleIgnoreButton = () => {
     }, 500);
   } else {
     // Show completion message
-    setTimeout(() => {
-      addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
-    }, 500);
+      setTimeout(() => {
+        addBotMessage("Thanks for providing all the information!");
+      }, 500);
   }
   setShowNextButton(false);
 
@@ -422,24 +422,22 @@ const handleIgnoreButton = () => {
         context: answers
       });
 
+      const isLastQuestion = currentQuestion === questions.length - 1;
+
       if (satisfied) {
-        // Save answer and move to next question
-        // const updatedAnswers = { ...answers, [questions[currentQuestion].id]: value };
-        // setAnswers(updatedAnswers);
-        // try {
-        //   localStorage.setItem('projectAnswers', JSON.stringify(updatedAnswers));
-        // } catch (error) {
-        //   console.error('Error saving to localStorage:', error);
-        // }
+        // Advance to next question or completion
         setCurrentQuestion(prev => prev + 1);
         setCurrentCriteria(prev => prev + 1);
 
-        const affirmation = await generateAdvice(
-          value,
-          questions[currentQuestion],
-          answers
-        );
-        addAdviceMessage(affirmation);
+        if (!isLastQuestion) {
+          // Generate advice only if not last question
+          const affirmation = await generateAdvice(
+            value,
+            questions[currentQuestion],
+            answers
+          );
+          addAdviceMessage(affirmation);
+        }
 
         if (currentQuestion + 1 < questions.length) {
           setTimeout(() => {
@@ -447,20 +445,23 @@ const handleIgnoreButton = () => {
           }, 500);
         } else {
           setTimeout(() => {
-            addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+            addBotMessage("Thanks for providing all the information!");
           }, 500);
         }
-      } else {
-         // Not satisfied: show feedback and let user revise
-        const advice = await generateAdvice(
-          value,
-          questions[currentQuestion],
-          answers
-        );
-        addAdviceMessage(advice);
 
-        // Do not advance currentQuestion; user stays on the same question
+      } else {
+        // Not satisfied: provide advice only if not last question
+        if (!isLastQuestion) {
+          const advice = await generateAdvice(
+            value,
+            questions[currentQuestion],
+            answers
+          );
+          addAdviceMessage(advice);
+        }
+        // Else do nothing for last question
       }
+
     }
   };
 
@@ -508,7 +509,7 @@ const handleIgnoreButton = () => {
         }, 500);
       } else {
         setTimeout(() => {
-          addBotMessage("Thanks for providing all the information! Would you like to preview your project showcase?");
+          addBotMessage("Thanks for providing all the information!");
         }, 500);
       }
     }

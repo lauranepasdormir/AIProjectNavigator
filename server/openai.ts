@@ -50,7 +50,7 @@ Generate a suggested answer for the following question:
 ${contextString ? contextString : "No additional context is available."}
 
 Make your suggestion helpful, concise, and professional. Write in first person as if from the project creator's perspective.
-Limit your response to 3-4 sentences maximum, focusing on the most important aspects.
+Limit your response to 3-4 sentences maximum, focusing on the most important aspects. Output only the example, no other response, no speech marks.
 `;
 
     console.log("Calling OpenAI API...");
