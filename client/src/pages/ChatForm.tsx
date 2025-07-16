@@ -424,9 +424,11 @@ const handleIgnoreButton = () => {
 
       const isLastQuestion = currentQuestion === questions.length - 1;
 
+      const nextQuestionIndex = currentQuestion + 1;
+
       if (satisfied) {
         // Advance to next question or completion
-        setCurrentQuestion(prev => prev + 1);
+        setCurrentQuestion(nextQuestionIndex);
         setCurrentCriteria(prev => prev + 1);
 
         if (!isLastQuestion) {
