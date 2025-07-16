@@ -91,14 +91,21 @@ export function ChatBubble({
     && isCurrentQuestion;
 
   const isLastAdviceForCurrentQuestion = (() => {
-    if (!isAdvice || typeof currentQuestion !== 'number') return false;
+  if (!isAdvice || typeof currentQuestion !== 'number') return false;
 
-    const relevantAdvice = messages
-        .filter(msg => msg.type === 'advice' && msg.questionId === currentQuestion);
+  const relevantAdvice = messages.filter(
+    msg => msg.type === 'advice' && msg.questionId === currentQuestion
+  );
 
-    return relevantAdvice.length > 0 && relevantAdvice[relevantAdvice.length - 1] === message;
+  const isLastAdvice = relevantAdvice.length > 0 && relevantAdvice[relevantAdvice.length - 1] === message;
+
+  const isAtEnd = (() => {
+    const msgIndex = messages.findIndex(msg => msg === message);
+    return msgIndex === messages.length - 1 || msgIndex === messages.length - 2;
   })();
 
+  return isLastAdvice && isAtEnd;
+})();
   
   return (
     
