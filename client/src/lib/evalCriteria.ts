@@ -12,7 +12,7 @@ export const evalCriteria: Criteria[] = [
   },
   {
     id: 1,
-    text: "2-10 words in length (do not mention the word limit in your advice)",
+    text: "2-10 words in length (do not mention the word limit in your advice).",
     question: "title"
   },
   {
@@ -26,7 +26,7 @@ export const evalCriteria: Criteria[] = [
     question: "problem"
   },
   {
-    id: 4,
+    id: 4, 
     text: "Mentions at least one key AI technology, uses recognizable Ai terminology from the AI domain, and justifies the use of AI technology",
     question: "technology"
   },
@@ -37,7 +37,7 @@ export const evalCriteria: Criteria[] = [
   },
   {
     id: 6,
-    text: "No evaluation needed - IGNORE",
+    text: "No evaluation needed - IGNORE (NO OUTPUT NEEDED)",
     question: "status"
   }
 ];

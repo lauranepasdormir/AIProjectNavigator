@@ -2,6 +2,8 @@ import { useState, FormEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, EyeIcon, Download, ArrowLeft, Database, Mic, MicOff } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox"; // adjust import based on your UI lib
+
 
 interface ChatInputProps {
   placeholder: string;
@@ -155,22 +157,36 @@ export function ChatInput({
       </div>
     );
   }
-  
+
   if (isComplete) {
+    const [isChecked, setIsChecked] = useState(false);
+
     return (
-      <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
-        <p className="text-center text-gray-700 mb-3 text-sm sm:text-base">You've completed all questions!</p>
+      <div className="border-t p-2 sm:p-4 bg-white shadow-inner">
+        <label className="flex items-start gap-2 mb-3 px-4 sm:px-3">
+          <Checkbox
+            checked={isChecked}
+            onCheckedChange={(checked) => setIsChecked(!!checked)}
+            id="consent-checkbox"
+            className="mt-0.5" // aligns visually with first line of text
+          />
+          <p className="text-gray-800 text-xs sm:text-sm">
+            By submitting your project here, you grant permission for it to be shared internally with Digital Village members and externally with our extended network of partners. This may include universities, state government, defence partners, existing and prospective clients, and other organisations we deem appropriate. <span className="text-red-500">*</span>
+          </p>
+        </label>
         <div className="flex justify-center">
           <Button
             onClick={onShowPreview}
+            disabled={!isChecked}
             className="px-6 py-3 bg-primary hover:bg-primary/90 gap-2 text-base sm:text-lg font-medium rounded-lg"
           >
-            <EyeIcon className="h-5 w-5 sm:h-6 sm:w-6" /> Show Preview
+            Proceed
           </Button>
         </div>
       </div>
     );
   }
+
   
   // Handle toggle of microphone
   const toggleListening = () => {
