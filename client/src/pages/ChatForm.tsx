@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { ToyBrick, Database, Download, Link2, Clock } from "lucide-react";
+import { ToyBrick, Database, Download, Link2, Clock, Eye } from "lucide-react";
 import { ChatMessage } from "@shared/schema";
 import { questions } from "@/lib/questions";
 import { evalCriteria } from "@/lib/evalCriteria";
@@ -564,14 +564,11 @@ const handleIgnoreButton = () => {
         // After successful submission, move to success stage
         setOnboardingStage('success');
         setTimeout(() => {
-          addBotMessage("🎉 Congratulations! Your project has been successfully submitted to Digital Village!");
-          setTimeout(() => {
-            addBotMessage("Your Digital Village profile is what clients see alongside your projects. A complete profile leads to stronger client impressions and more opportunities.");
+          addBotMessage("Thank you for your submission!");
             setTimeout(() => {
-              addBotMessage("Would you like to update your Digital Village profile now?");
+              addBotMessage("Your Digital Village profile helps attract clients. Want to update it now for more opportunities? ");
               setOnboardingStage('profile');
             }, 1000);
-          }, 1500);
         }, 500);
       }
     });
@@ -585,7 +582,7 @@ const handleIgnoreButton = () => {
     setProfileChoice(choice);
     
     if (choice === 'yes') {
-      addUserMessage("Yes, take me there!");
+      addUserMessage("Update my profile.");
       setTimeout(() => {
         addBotMessage("Great choice! I'm opening the Digital Village Network App for you now. You'll be able to update your profile there.");
         // Open Digital Village profile in a new tab
@@ -645,7 +642,7 @@ const handleIgnoreButton = () => {
           <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center justify-between shadow-md">
             <div className="flex items-center">
               <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-              <h1 className="text-lg sm:text-xl font-semibold">Submit Your AI Project</h1>
+              <h1 className="text-lg sm:text-xl font-semibold">Tell Us About Your AI Project</h1>
     
               {/* <Select defaultValue="gpt-4o" onValueChange={(value) => setLLM(value)}>
                 <SelectTrigger className="w-[120px] bg-white text-primary text-sm h-8 border-none shadow-sm">
@@ -715,8 +712,8 @@ const handleIgnoreButton = () => {
           
           {/* Visibility Selector - Only show in visibility stage */}
           {!isPreviewMode && onboardingStage === 'visibility' && (
-            <div className="p-3 sm:p-4 md:p-6">
-              <VisibilitySelector
+            <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
+              {/* <VisibilitySelector
                 selectedVisibility={selectedVisibility}
                 onSelectVisibility={(visibility) => {
                   setSelectedVisibility(visibility);
@@ -738,16 +735,26 @@ const handleIgnoreButton = () => {
                     variant: "default",
                   });
                 }}
-              />
-              <div className="mt-6 flex justify-center">
+              /> */}
+              <div className="flex justify-center gap-5">
                 <Button 
                   onClick={handleShowPreview}
-                  className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg"
+                  className="px-6 py-3 bg-secondary hover:bg-gray-200 text-blue-600 text-base font-medium rounded-lg"
                 >
-                  Preview Project
+                  <Eye className="h-5 w-5 text-blue-600" />
+                  Preview
+                </Button>
+                <Button
+                  onClick={handleDownload}
+                  className="px-6 py-3 bg-secondary hover:bg-gray-200 text-blue-600 text-base font-medium rounded-lg flex items-center gap-2"
+                >
+                  <Download className="h-5 w-5 text-blue-600" />
+                  Download
                 </Button>
               </div>
+        
             </div>
+          
           )}
 
           {/* Input Area */}
@@ -810,7 +817,7 @@ const handleIgnoreButton = () => {
                     ? () => {
                         // When all questions are answered, move to visibility selection
                         setOnboardingStage('visibility');
-                        addBotMessage("Please select your project visibility:");
+                        // addBotMessage("Please select your project visibility:");
                       }
                     : undefined
                 }
@@ -847,25 +854,29 @@ const handleIgnoreButton = () => {
             
             {/* Additional buttons for visibility stage to submit and download */}
             {!isPreviewMode && onboardingStage === 'visibility' && (
-              <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
-                <div className="flex flex-col sm:flex-row justify-center gap-3">
-                  <Button
-                    onClick={handleSaveToDatabase}
-                    disabled={isSaved || submitProjectMutation.isPending}
-                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg flex items-center gap-2"
-                  >
-                    <Database className="h-5 w-5" />
-                    {submitProjectMutation.isPending ? 'Saving...' : isSaved ? 'Saved' : 'Submit Project'}
-                  </Button>
-                  <Button
-                    onClick={handleDownload}
-                    className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-blue-600 text-base font-medium rounded-lg flex items-center gap-2"
-                  >
-                    <Download className="h-5 w-5 text-blue-600" />
-                    Download Markdown
-                  </Button>
-                </div>
+              // <div className="border-t p-3 sm:p-4 bg-white w-[100%] mx-auto">  
+              
+              <div className="flex flex-col sm:flex-row justify-center gap-3 pb-5">
+                <Button
+                  onClick={handleSaveToDatabase}
+                  disabled={isSaved || submitProjectMutation.isPending}
+                  className="px-6 py-3 bg-primary hover:bg-primary/80 text-base font-medium rounded-lg flex items-center gap-2"
+                >
+                  <Database className="h-5 w-5" />
+                  {submitProjectMutation.isPending ? 'Saving...' : isSaved ? 'Saved' : 'Submit Project'}
+                </Button>
+                {/* <Button
+                  onClick={handleDownload}
+                  className="px-6 py-3 bg-secondary hover:bg-secondary/90 text-blue-600 text-base font-medium rounded-lg flex items-center gap-2"
+                >
+                  <Download className="h-5 w-5 text-blue-600" />
+                  Download Markdown
+                </Button> */}
               </div>
+              // </div>
+    
+
+
             )}
             
             {/* Profile update choice buttons */}
@@ -877,16 +888,23 @@ const handleIgnoreButton = () => {
                     className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg flex items-center gap-2"
                   >
                     <Link2 className="h-5 w-5" />
-                    Yes, take me there!
+                    Update Profile
                   </Button>
                   <Button
+                    onClick={handleDownload}
+                    className="px-6 py-3 bg-secondary hover:bg-gray-200 text-blue-600 text-base font-medium rounded-lg flex items-center gap-2"
+                  >
+                    <Download className="h-5 w-5 text-blue-600" />
+                    Download Markdown
+                  </Button>
+                  {/* <Button
                     onClick={() => handleProfileChoice('later')}
                     variant="outline"
                     className="px-6 py-3 text-base font-medium rounded-lg flex items-center gap-2"
                   >
                     <Clock className="h-5 w-5" />
                     Maybe later
-                  </Button>
+                  </Button> */}
                 </div>
               </div>
             )}
