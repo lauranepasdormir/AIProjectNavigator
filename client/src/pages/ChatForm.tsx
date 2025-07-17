@@ -33,6 +33,7 @@ export default function ChatForm() {
   const [inputValue, setInputValue] = useState("");
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
   const lastUserInputRef = useRef<string | null>(null);
+  const [showButton, setShowButton] = useState(false);
   
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -198,7 +199,7 @@ export default function ChatForm() {
     if (onboardingStage === 'welcome') {
       setOnboardingStage('purpose');
       setTimeout(() => {
-        addBotMessage("The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities.");
+        addBotMessage("The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities. Keep in mind that the information provided by you will be used for marketing purposes and will be publicly visible on the Digital Village platform.");
       }, 500);
     } else if (onboardingStage === 'purpose') {
       setOnboardingStage('questions');
@@ -211,12 +212,25 @@ export default function ChatForm() {
   // Welcome + 2s + Purpose
   useEffect(() => {
     if (onboardingStage === 'welcome') {
-      const timeout = setTimeout(() => {
+      const timeout1 = setTimeout(() => {
         setOnboardingStage('purpose');
-        addBotMessage("The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities.");
-      }, 2000); 
+        addBotMessage(
+          "The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities."
+        );
+      }, 2000);
 
-      return () => clearTimeout(timeout); 
+      const timeout2 = setTimeout(() => {
+        addBotMessage(
+          "Keep in mind that the information provided by you will be used for marketing purposes and will be publicly visible on the Digital Village platform."
+        );
+        setShowButton(true);
+      }, 4000); // 2s after first message = 4s total
+
+      return () => {
+        clearTimeout(timeout1);
+      };
+    } else {
+      setShowButton(false);
     }
   }, [onboardingStage]);
 
@@ -445,8 +459,6 @@ const handleIgnoreButton = () => {
           const advice = await generateAdvice(value, questions[currentQuestion], answers);
           addAdviceMessage(advice);
       }
-
-
     }
   };
 
@@ -634,9 +646,12 @@ const handleIgnoreButton = () => {
   // Generate markdown content
   const markdownContent = generateMarkdown(answers);
   const htmlContent = formatMarkdownToHtml(markdownContent);
-  // const [llm, setLLM] = useState("gpt-4o");
+  const isInputDisabled = generateDraftMutation.isPending 
+  || submitProjectMutation.isPending 
+  || evaluateAnswerMutation.isPending;
 
-  
+  console.log({"testing isinputdisabled": isInputDisabled })
+
   return (
     <div className="flex flex-col min-h-screen">
       <div className="flex justify-center items-center py-10 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
@@ -751,21 +766,7 @@ const handleIgnoreButton = () => {
           )}
 
           {/* Input Area */}
-          <div className="mt-auto">
-            {/* {onboardingStage === 'welcome' && (
-              <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
-                <div className="flex justify-center">
-                  <Button
-                    onClick={() => handleSubmit("I'm ready to proceed")}
-                    className="px-6 py-3 bg-primary hover:bg-primary/90 text-base sm:text-lg font-medium rounded-lg"
-                  >
-                    Continue
-                  </Button>
-                </div>
-              </div>
-            )} */}
-            
-            {onboardingStage === 'purpose' && (
+            {onboardingStage === 'purpose' && showButton && (
               <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
                 <div className="flex justify-center">
                   <Button
@@ -777,6 +778,7 @@ const handleIgnoreButton = () => {
                 </div>
               </div>
             )}
+
             
             {onboardingStage === 'questions' && !isPreviewMode && (
               currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion].type === "dropdown" ? (
@@ -821,6 +823,7 @@ const handleIgnoreButton = () => {
                 onBackToChat={handleBackToChat}
                 isPreviewMode={false}
                 isSaved={isSaved}
+                disabled={isInputDisabled}
                 isSaving={submitProjectMutation.isPending}
                 onEditInput={(fn) => {
                   editInputRef.current = fn;
@@ -893,6 +896,5 @@ const handleIgnoreButton = () => {
           </div>
         </div>
       </div>
-    </div>
   );
 }

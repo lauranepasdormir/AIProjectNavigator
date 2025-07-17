@@ -2,8 +2,7 @@ import { useState, FormEvent, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Send, EyeIcon, Download, ArrowLeft, Database, Mic, MicOff } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox"; // adjust import based on your UI lib
-
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ChatInputProps {
   placeholder: string;
@@ -16,6 +15,7 @@ interface ChatInputProps {
   isPreviewMode?: boolean;
   isSaved?: boolean;
   isSaving?: boolean;
+  disabled?: boolean; // Add disabled prop
   onEditInput?: (fn: (text: string) => void) => void;
 }
 
@@ -50,7 +50,6 @@ interface SpeechRecognition extends EventTarget {
 }
 
 // Global variable to access the Web Speech API
-// Using 'as any' to avoid TypeScript errors with browser compatibility
 const SpeechRecognitionAPI = (window as any).SpeechRecognition || 
                            (window as any).webkitSpeechRecognition;
 
@@ -65,6 +64,7 @@ export function ChatInput({
   isPreviewMode = false,
   isSaved = false,
   isSaving = false,
+  disabled = false, // Default to false
   onEditInput
 }: ChatInputProps) {
   const [inputValue, setInputValue] = useState("");
@@ -80,14 +80,12 @@ export function ChatInput({
       recognitionInstance.interimResults = false;
       recognitionInstance.lang = 'en-US';
       
-      // Type assertion to avoid TypeScript errors
       recognitionInstance.onresult = ((event: any) => {
         const transcript = event.results[0][0].transcript;
         setInputValue((prev) => prev + ' ' + transcript.trim());
         stopListening();
       }) as any;
       
-      // Type assertion to avoid TypeScript errors
       recognitionInstance.onerror = ((event: any) => {
         console.error('Speech recognition error', event.error);
         stopListening();
@@ -115,7 +113,7 @@ export function ChatInput({
   }, [onEditInput]);
   
   const startListening = () => {
-    if (recognition) {
+    if (recognition && !disabled) { // Prevent starting if disabled
       try {
         recognition.start();
         setIsListening(true);
@@ -135,6 +133,7 @@ export function ChatInput({
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim() && !isComplete) return;
+    if (disabled) return; // Prevent submission if disabled
     
     // Stop listening if active when submitting
     if (isListening) {
@@ -151,7 +150,9 @@ export function ChatInput({
         <Button
           variant="outline"
           onClick={onBackToChat}
-          className="bg-primary text-white hover:bg-primary/90 hover:text-white gap-2 py-2 px-4 text-base sm:text-base self-start rounded-lg"        >
+          className="bg-primary text-white hover:bg-primary/90 hover:text-white gap-2 py-2 px-4 text-base sm:text-base self-start rounded-lg"
+          disabled={disabled} // Disable back button when processing
+        >
           <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" /> Return to Chat
         </Button>
       </div>
@@ -168,7 +169,8 @@ export function ChatInput({
             checked={isChecked}
             onCheckedChange={(checked) => setIsChecked(!!checked)}
             id="consent-checkbox"
-            className="mt-0.5" // aligns visually with first line of text
+            className="mt-0.5"
+            disabled={disabled} // Disable checkbox when processing
           />
           <p className="text-gray-800 text-xs sm:text-sm">
             By submitting your project here, you grant permission for it to be shared internally with Digital Village members and externally with our extended network of partners. This may include universities, state government, defence partners, existing and prospective clients, and other organisations we deem appropriate. <span className="text-red-500">*</span>
@@ -177,7 +179,7 @@ export function ChatInput({
         <div className="flex justify-center">
           <Button
             onClick={onShowPreview}
-            disabled={!isChecked}
+            disabled={!isChecked || disabled} // Disable button if not checked or processing
             className="px-6 py-3 bg-primary hover:bg-primary/90 gap-2 text-base sm:text-lg font-medium rounded-lg"
           >
             Proceed
@@ -187,8 +189,6 @@ export function ChatInput({
     );
   }
 
-  
-  // Handle toggle of microphone
   const toggleListening = () => {
     if (isListening) {
       stopListening();
@@ -207,8 +207,9 @@ export function ChatInput({
           placeholder={isListening ? "Listening..." : placeholder}
           className={`w-full border ${isListening ? 'border-red-400' : 'border-gray-300'} focus:ring-2 focus:ring-primary min-h-[50px] sm:min-h-[60px] text-sm sm:text-base resize-none ${isListening ? 'pr-8' : ''}`}
           rows={2}
+          disabled={disabled || isListening} // Disable textarea when processing or listening
           onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey && !disabled) { // Prevent submission if disabled
               e.preventDefault();
               handleSubmit(e as unknown as FormEvent);
             }
@@ -232,6 +233,7 @@ export function ChatInput({
             onClick={toggleListening}
             className={`${isListening ? 'bg-red-500 hover:bg-red-600' : 'bg-primary hover:bg-primary/90'} p-2 h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center`}
             title={isListening ? "Stop recording" : "Start voice input"}
+            disabled={disabled} // Disable voice button when processing
           >
             {isListening ? <MicOff className="h-5 w-5 sm:h-6 sm:w-6" /> : <Mic className="h-5 w-5 sm:h-6 sm:w-6" />}
           </Button>
@@ -239,6 +241,7 @@ export function ChatInput({
         <Button 
           type="submit" 
           className="bg-primary hover:bg-primary/90 p-2 h-10 w-10 sm:h-12 sm:w-12 rounded-lg flex items-center justify-center"
+          disabled={disabled || !inputValue.trim()} // Disable submit button when processing or empty
         >
           <Send className="h-5 w-5 sm:h-6 sm:w-6" />
         </Button>
