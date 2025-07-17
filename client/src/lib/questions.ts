@@ -11,15 +11,15 @@ export const questions: Question[] = [
   {
     id: 'username',
     text: "Before we get started, what's your name or username? We'll use this to identify your project submission.",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Enter your name or username"
   },
   {
     id: 'title',
     text: "What's the title of your AI project? Be sure to keep it short and punchy.",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Enter project title"
   },
   {
