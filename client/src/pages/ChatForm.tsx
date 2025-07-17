@@ -424,45 +424,28 @@ const handleIgnoreButton = () => {
 
       const isLastQuestion = currentQuestion === questions.length - 1;
 
-      const nextQuestionIndex = currentQuestion + 1;
+      if (satisfied || isLastQuestion) {
+          // Advance to next question or completion
+          setCurrentQuestion(currentQuestion + 1);
+          setCurrentCriteria(prev => prev + 1);
 
-      if (satisfied) {
-        // Advance to next question or completion
-        setCurrentQuestion(nextQuestionIndex);
-        setCurrentCriteria(prev => prev + 1);
-
-        if (!isLastQuestion) {
-          // Generate advice only if not last question
-          const affirmation = await generateAdvice(
-            value,
-            questions[currentQuestion],
-            answers
-          );
-          addAdviceMessage(affirmation);
-        }
-
-        if (currentQuestion + 1 < questions.length) {
-          setTimeout(() => {
-            addBotMessage(questions[currentQuestion + 1].text);
-          }, 500);
-        } else {
-          setTimeout(() => {
-            addBotMessage("Thanks for providing all the information!");
-          }, 500);
-        }
-
+          if (!isLastQuestion) {
+              const affirmation = await generateAdvice(value, questions[currentQuestion], answers);
+              addAdviceMessage(affirmation);
+              setTimeout(() => {
+                  addBotMessage(questions[currentQuestion + 1].text);
+              }, 500);
+          } else {
+              setTimeout(() => {
+                  addBotMessage("Thanks for providing all the information!");
+              }, 500);
+          }
       } else {
-        // Not satisfied: provide advice only if not last question
-        if (!isLastQuestion) {
-          const advice = await generateAdvice(
-            value,
-            questions[currentQuestion],
-            answers
-          );
+          // Provide advice without incrementing
+          const advice = await generateAdvice(value, questions[currentQuestion], answers);
           addAdviceMessage(advice);
-        }
-        // Else do nothing for last question
       }
+
 
     }
   };
