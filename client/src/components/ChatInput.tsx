@@ -169,8 +169,7 @@ export function ChatInput({
             disabled={disabled}
           />
           <p className="text-gray-800 text-xs sm:text-sm">
-            By submitting your project here, you grant permission for it to be shared internally
-            with Digital Village members and externally with our extended network of partners...
+            By submitting your project here, you grant permission for it to be shared internally with Digital Village members and externally with our extended network of partners. This may include universities, state government, defence partners, existing and prospective clients, and other organisations we deem appropriate.
             <span className="text-red-500">*</span>
           </p>
         </label>

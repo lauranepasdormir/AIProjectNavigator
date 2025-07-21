@@ -70,11 +70,6 @@ export default function ChatForm() {
 // Toast for UI feedback
   const { toast } = useToast();
 
-  // ------------- EFFECT: RESET PROJECT ON LOAD -------------
-  // useEffect(() => {
-  //   clearProjectData();
-  // }, []);
-
   // ------------- MUTATION: SUBMIT PROJECT -------------
   const submitProjectMutation = useMutation({
     mutationFn: async (projectData: Record<string, string>) => {
