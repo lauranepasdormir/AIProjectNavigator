@@ -7,6 +7,7 @@ interface ChatNavigationProps {
   isCurrentQuestionRequired: boolean;
   onPrevious: () => void;
   onSkip: () => void;
+  isInputDisabled: boolean; // Add isInputDisabled to the interface
 }
 
 export function ChatNavigation({
@@ -14,7 +15,8 @@ export function ChatNavigation({
   totalQuestions,
   isCurrentQuestionRequired,
   onPrevious,
-  onSkip
+  onSkip,
+  isInputDisabled, // Destructure the new prop
 }: ChatNavigationProps) {
   return (
     <div className="border-t border-gray-200 p-2 bg-gray-50 flex items-center justify-between">
@@ -23,7 +25,7 @@ export function ChatNavigation({
           variant="outline"
           size="sm"
           onClick={onPrevious}
-          disabled={currentQuestion === 0}
+          disabled={currentQuestion === 0 || isInputDisabled} // Disable when currentQuestion is 0 or AI is processing
           className="flex items-center gap-1 text-xs sm:text-sm py-1 h-8 px-2 sm:px-3"
         >
           <ArrowLeft className="h-3 w-3 sm:h-4 sm:w-4" /> Back
@@ -33,7 +35,7 @@ export function ChatNavigation({
           variant="outline"
           size="sm"
           onClick={onSkip}
-          disabled={isCurrentQuestionRequired}
+          disabled={isCurrentQuestionRequired || isInputDisabled} // Optionally disable Skip button too
           className="flex items-center gap-1 text-xs sm:text-sm py-1 h-8 px-2 sm:px-3"
         >
           Skip <ChevronsRight className="h-3 w-3 sm:h-4 sm:w-4" />

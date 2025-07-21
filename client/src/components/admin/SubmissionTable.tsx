@@ -52,7 +52,7 @@ export default function SubmissionTable({
         <TableHeader>
           <TableRow>
             <TableHead className="px-4 py-2">Project</TableHead>
-            <TableHead className="px-4 py-2">Visibility</TableHead>
+            {/* <TableHead className="px-4 py-2">Visibility</TableHead> */}
             <TableHead className="px-4 py-2">Status</TableHead>
             <TableHead className="px-4 py-2">Submitted by</TableHead>
             <TableHead className="px-4 py-2">Date</TableHead>
@@ -75,11 +75,11 @@ export default function SubmissionTable({
                 </div>
               </TableCell>
 
-              <TableCell className="px-4 py-2 whitespace-normal">
+              {/* <TableCell className="px-4 py-2 whitespace-normal">
                 <Badge variant={getVisibilityColor(submission.visibility)} className="inline-flex items-center px-3 py-1 rounded-full text-xs whitespace-normal">
                   {submission.visibility}
                 </Badge>
-              </TableCell>
+              </TableCell> */}
 
               <TableCell className="px-3 py-2 whitespace-normal">
                 <Badge
