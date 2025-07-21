@@ -66,7 +66,7 @@ export default function ChatForm() {
         variant: "default",
       });
     }
-  };
+  };    
 
   useEffect(() => {
     clearProjectData();
