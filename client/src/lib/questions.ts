@@ -11,43 +11,43 @@ export const questions: Question[] = [
   {
     id: 'username',
     text: "Before we get started, what's your name or username? We'll use this to identify your project submission.",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Enter your name or username"
   },
   {
     id: 'title',
     text: "What's the title of your AI project? Be sure to keep it short and punchy.",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Enter project title"
   },
   {
     id: 'description',
     text: "Can you briefly describe what your project does, who it's for, and the effect it aims to have in its industry?",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Describe your project"
   },
   {
     id: 'problem',
     text: "What key problem does your project aim to solve? Who is your intended end-user? Try not to mention your solution yet.",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Describe the problem"
   },
   {
     id: 'technology',
     text: "What AI techniques or technologies are you using, and why are they appropriate?",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "List AI technologies"
   },
   {
     id: 'impact',
     text: "What impact will your project have and who will it affect? What is the business value of this impact?",
-    // required: true,
-    required: false,
+    required: true,
+    // required: false,
     placeholder: "Describe impact"
   },
   {

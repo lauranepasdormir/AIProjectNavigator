@@ -75,10 +75,6 @@ export default function ChatForm() {
       });
     }
   };
-
-  useEffect(() => {
-    clearProjectData();
-  }, []);
     
   // Toast notifications
   const { toast } = useToast();
