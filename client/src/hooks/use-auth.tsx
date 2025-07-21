@@ -1,9 +1,11 @@
-import { createContext, ReactNode, useContext, useState, useEffect } from "react";
 import {
-  useQuery,
-  useMutation,
-  UseMutationResult,
-} from "@tanstack/react-query";
+  createContext,
+  ReactNode,
+  useContext,
+  useState,
+  useEffect,
+} from "react";
+import { useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,19 +23,15 @@ type AuthContextType = {
   isAuthenticated: boolean;
 };
 
-type LoginData = {
-  email: string;
-  password: string;
-};
-
 export const AuthContext = createContext<AuthContextType | null>(null);
 
+// Provider wrapper
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 
-  // Get current user on mount
+  /** 1. React Query - fetch current session user */
   const {
     data: userData,
     error,
@@ -44,163 +42,132 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     queryFn: async () => {
       try {
         const res = await apiRequest("/api/me");
-        if (res.status === 401) {
-          return null; // Not authenticated
-        }
-        return await res.json();
-      } catch (error) {
-        return null; // Handle network errors
+        return res.status === 401 ? null : await res.json();
+      } catch {
+        return null; // network failure
       }
     },
-    retry: false, // Don't retry if we get an auth error
+    retry: false,
   });
 
+  /** 2. Update local state from server response */
   useEffect(() => {
     if (userData) {
-      console.log("Setting authenticated user from userData:", userData);
       setUser(userData);
       setIsAuthenticated(true);
-      
-      // Store authentication state in sessionStorage for persistence
-      // This helps prevent auth state from being lost on redirects
-      sessionStorage.setItem('isAuthenticated', 'true');
-      sessionStorage.setItem('user', JSON.stringify(userData));
+      sessionStorage.setItem("isAuthenticated", "true");
+      sessionStorage.setItem("user", JSON.stringify(userData));
     } else if (!isLoading && !isError) {
-      console.log("Clearing authentication state");
       setUser(null);
       setIsAuthenticated(false);
-      
-      // Clear session storage
-      sessionStorage.removeItem('isAuthenticated');
-      sessionStorage.removeItem('user');
+      sessionStorage.removeItem("isAuthenticated");
+      sessionStorage.removeItem("user");
     }
   }, [userData, isLoading, isError]);
-  
-  // Initialize from sessionStorage on mount
+
+  /** 3. Restore from sessionStorage if available */
   useEffect(() => {
-    const storedAuth = sessionStorage.getItem('isAuthenticated');
-    const storedUser = sessionStorage.getItem('user');
-    
-    if (storedAuth === 'true' && storedUser) {
+    const storedAuth = sessionStorage.getItem("isAuthenticated");
+    const storedUser = sessionStorage.getItem("user");
+
+    if (storedAuth === "true" && storedUser) {
       try {
         const parsedUser = JSON.parse(storedUser);
-        console.log("Restoring auth state from session storage:", parsedUser);
         setUser(parsedUser);
         setIsAuthenticated(true);
-        
-        // Refresh the data from server
+        // Trigger fresh fetch
         queryClient.invalidateQueries({ queryKey: ["/api/me"] });
       } catch (e) {
-        console.error("Error parsing stored user:", e);
-        sessionStorage.removeItem('isAuthenticated');
-        sessionStorage.removeItem('user');
+        console.error("Error restoring session:", e);
+        sessionStorage.clear();
       }
     }
   }, []);
 
-  // Login function
+  /** 4. Login logic */
   const login = async (email: string, password: string) => {
     try {
-      // Input validation
       if (!email || !password) {
         throw new Error("Both email and password are required");
       }
-      
-      // Fix: Server expects 'username' not 'email'
-      console.log("Auth hook login attempt with:", { username: email, passwordProvided: !!password });
-      
-      // Use a simple fetch directly here to avoid issues with cloning
+
       const response = await fetch("/api/login", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          // Add cache-busting headers 
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache"
-        },
-        body: JSON.stringify({ 
-          username: email, // Note: Send as username
-          password 
-        }),
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          Pragma: "no-cache",
+        },
+        body: JSON.stringify({
+          username: email,
+          password,
+        }),
       });
-      
-      // For debugging - log the status
-      console.log(`Auth hook login response status: ${response.status} ${response.statusText}`);
-      
-      let responseData;
-      try {
-        // Try to parse the response as JSON
-        const clonedResponse = response.clone(); // Clone before reading body
-        responseData = await response.json();
-        console.log("Auth hook login response data:", responseData);
-      } catch (e) {
-        console.error("Error parsing login response as JSON:", e);
-        // Handle non-JSON responses
-        try {
-          const textResponse = await response.text();
-          console.log("Auth hook login response text:", textResponse);
-        } catch (textError) {
-          console.error("Error getting text response:", textError);
-        }
-        throw new Error(`Login Error (non-JSON response): ${response.status} ${response.statusText}`);
-      }
-      
+
+      // Parse response
+      const data = await response
+        .clone()
+        .json()
+        .catch(async () => await response.text());
+
       if (!response.ok) {
         throw new Error(
-          responseData.message || 
-          responseData.error || 
-          `Login Error: ${response.status} ${response.statusText}`
+          data?.message || data?.error || "Login failed. Please try again."
         );
       }
-      
-      console.log("Login successful, user data:", responseData);
-      setUser(responseData);
+
+      // Update local state
+      setUser(data);
       setIsAuthenticated(true);
-      
-      // Invalidate both endpoints to ensure fresh data
+      sessionStorage.setItem("isAuthenticated", "true");
+      sessionStorage.setItem("user", JSON.stringify(data));
+
       queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-      queryClient.invalidateQueries({ queryKey: ["/api/project-submissions-direct"] });
-      
+      queryClient.invalidateQueries({
+        queryKey: ["/api/project-submissions-direct"],
+      });
+
       toast({
         title: "Login successful",
         description: "You are now logged in.",
-        variant: "default",
       });
     } catch (error) {
-      console.error("Login error:", error);
       toast({
         title: "Login failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
       throw error;
     }
   };
 
-  // Logout function
+  /** 5. Logout logic */
   const logout = async () => {
     try {
-      const response = await apiRequest("/api/logout", "POST");
-      
-      if (response.ok) {
-        setUser(null);
-        setIsAuthenticated(false);
-        queryClient.invalidateQueries({ queryKey: ["/api/me"] });
-        
-        toast({
-          title: "Logout successful",
-          description: "You have been logged out.",
-          variant: "default",
-        });
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Logout failed");
+      const res = await apiRequest("/api/logout", "POST");
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err?.error || "Logout failed");
       }
+
+      setUser(null);
+      setIsAuthenticated(false);
+      sessionStorage.clear();
+
+      queryClient.invalidateQueries({ queryKey: ["/api/me"] });
+
+      toast({
+        title: "Logout successful",
+        description: "You have been logged out.",
+      });
     } catch (error) {
       toast({
         title: "Logout failed",
-        description: error instanceof Error ? error.message : "An error occurred",
+        description:
+          error instanceof Error ? error.message : "An unknown error occurred",
         variant: "destructive",
       });
       throw error;
@@ -223,6 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Hook to access auth context
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

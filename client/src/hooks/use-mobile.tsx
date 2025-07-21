@@ -1,19 +1,31 @@
-import * as React from "react"
+import * as React from "react";
 
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = 768;
 
-export function useIsMobile() {
-  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
+/**
+ * Custom hook to detect if the viewport is considered "mobile" (less than 768px).
+ * Returns `true` for mobile, `false` for desktop.
+ */
+export function useIsMobile(): boolean {
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined);
 
   React.useEffect(() => {
-    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
-    const onChange = () => {
-      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    }
-    mql.addEventListener("change", onChange)
-    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
-    return () => mql.removeEventListener("change", onChange)
-  }, [])
+    const mediaQuery = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`);
 
-  return !!isMobile
+    const handleChange = () => {
+      setIsMobile(mediaQuery.matches);
+    };
+
+    // Initial check
+    handleChange();
+
+    // Listen for screen width changes
+    mediaQuery.addEventListener("change", handleChange);
+
+    // Cleanup on unmount
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
+
+  // Ensure we return a boolean (fallback to false during SSR/hydration mismatch)
+  return !!isMobile;
 }

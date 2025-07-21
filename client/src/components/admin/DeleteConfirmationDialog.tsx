@@ -11,13 +11,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Props for DeleteConfirmationDialog
 interface DeleteConfirmationDialogProps {
-  open: boolean;
-  submission: ProjectSubmission | null;
-  onCancel: () => void;
-  onConfirm: () => void;
+  open: boolean;                            // Controls whether the dialog is open
+  submission: ProjectSubmission | null;     // The submission to delete (null-safe)
+  onCancel: () => void;                     // Callback when the user cancels
+  onConfirm: () => void;                    // Callback when the user confirms deletion
 }
 
+// A dialog prompting the user to confirm deletion of a project submission
 export default function DeleteConfirmationDialog({
   open,
   submission,

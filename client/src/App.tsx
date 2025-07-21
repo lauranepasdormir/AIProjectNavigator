@@ -1,4 +1,3 @@
-// src/App.tsx
 import React, { useState, useEffect, Suspense, lazy } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { Header } from "@/components/Header";
@@ -11,15 +10,18 @@ import { queryClient } from "./lib/queryClient";
 import { AuthProvider } from "@/hooks/use-auth";
 import SetupPage from "@/pages/SetupPage";
 
-// lazy load the big pages
+// Lazy-load large pages to reduce initial bundle size
 const ChatForm   = lazy(() => import("@/pages/ChatForm"));
 const AdminPanel = lazy(() => import("@/pages/AdminPanel"));
 
-// eager load the small pages
+// Eager-load small or frequently visited pages
 import LoginPage from "@/pages/LoginPage";
 import NotFound  from "@/pages/not-found";
 
-// A contextual loading/fallback page for Suspense
+/**
+ * A loading screen shown during lazy-load (Suspense fallback).
+ * Customizes the message based on the current route.
+ */
 function LoadingPage() {
   const [location] = useLocation();
   const isAdminRoute = location.startsWith("/admin");
@@ -36,7 +38,8 @@ function LoadingPage() {
 }
 
 function App() {
-  // null = initial loading, false = setup in progress, true = ready
+  // State to manage setup readiness
+  // null = loading, false = in setup, true = app is ready
   const [setupReady, setSetupReady] = useState<boolean | null>(null);
 
   useEffect(() => {
@@ -48,25 +51,26 @@ function App() {
         .then((data: { ready: boolean }) => {
           if (data.ready) {
             setSetupReady(true);
-            if (intervalId) window.clearInterval(intervalId);
+            if (intervalId) window.clearInterval(intervalId); // stop polling
           } else if (setupReady === null) {
-            setSetupReady(false);
+            setSetupReady(false); // first check: setup in progress
           }
         })
         .catch(() => {
-          if (setupReady === null) setSetupReady(false);
+          if (setupReady === null) setSetupReady(false); // network or server error
         });
     };
 
-    checkStatus();
-    intervalId = window.setInterval(checkStatus, 1000);
+    checkStatus(); // initial check
+    intervalId = window.setInterval(checkStatus, 1000); // poll every second
+
     return () => {
       if (intervalId) window.clearInterval(intervalId);
     };
   }, [setupReady]);
 
+  // Initial loading screen while determining setup state
   if (setupReady === null) {
-    // initial spinner while we hit /api/setup-status
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin h-12 w-12 border-4 border-t-primary rounded-full"></div>
@@ -74,10 +78,12 @@ function App() {
     );
   }
 
+  // Setup is not ready yet, show setup screen
   if (!setupReady) {
     return <SetupPage />;
   }
 
+  // Setup is complete, render full app with providers and routes
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
@@ -86,13 +92,13 @@ function App() {
           <div className="min-h-screen flex flex-col bg-gray-50 pb-24">
             <Header />
             <main className="flex-1">
-              {/* Use our contextual LoadingPage as the Suspense fallback */}
               <Suspense fallback={<LoadingPage />}>
                 <Switch>
                   <Route path="/" component={ChatForm} />
                   <Route path="/app" component={ChatForm} />
                   <Route path="/login" component={LoginPage} />
                   <ProtectedRoute path="/admin" component={AdminPanel} />
+                  {/* Fallback route for undefined paths */}
                   <Route component={NotFound} />
                 </Switch>
               </Suspense>

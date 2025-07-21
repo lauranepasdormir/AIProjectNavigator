@@ -9,14 +9,14 @@ import { ChatBubble } from "@/components/ChatBubble";
 import { ChatInput } from "@/components/ChatInput";
 import { ChatNavigation } from "@/components/ChatNavigation";
 import { MarkdownPreview } from "@/components/MarkdownPreview";
-import { VisibilitySelector } from "@/components/VisibilitySelector";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 
+// Main component that manages the chat-based form flow
 export default function ChatForm() {
-  // State management
+  // ------------- STATE MANAGEMENT -------------
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(-1);
   const [currentCriteria, setCurrentCriteria] = useState(0);
@@ -28,7 +28,6 @@ export default function ChatForm() {
   const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility' | 'success' | 'profile'>('welcome');
   const [selectedVisibility, setSelectedVisibility] = useState<string>("private");
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
-  const [inputValue, setInputValue] = useState("");
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
   const lastUserInputRef = useRef<string | null>(null);
   const [showButton, setShowButton] = useState(false);
@@ -68,14 +67,15 @@ export default function ChatForm() {
     }
   };    
 
+// Toast for UI feedback
+  const { toast } = useToast();
+
+  // ------------- EFFECT: RESET PROJECT ON LOAD -------------
   useEffect(() => {
     clearProjectData();
   }, []);
 
-  // Toast notifications
-  const { toast } = useToast();
-
-  // Mutation to save project to database
+  // ------------- MUTATION: SUBMIT PROJECT -------------
   const submitProjectMutation = useMutation({
     mutationFn: async (projectData: Record<string, string>) => {
       const response = await apiRequest(

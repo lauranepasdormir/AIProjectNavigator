@@ -1,16 +1,23 @@
-import React from 'react';
+import React from "react";
 import { ProjectSubmission } from "@shared/schema";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Download, Trash2, Lock, Users, Globe } from "lucide-react";
 
+// Props for the SubmissionDetailsDialog component
 interface SubmissionDetailsDialogProps {
-  open: boolean;
-  submission: ProjectSubmission | null;
-  onClose: () => void;
-  onDelete: (submission: ProjectSubmission) => void;
-  onDownload: (submission: ProjectSubmission) => void;
+  open: boolean;                                      // Whether the dialog is open
+  submission: ProjectSubmission | null;               // Selected submission data
+  onClose: () => void;                                // Callback when dialog is closed
+  onDelete: (submission: ProjectSubmission) => void;  // Callback for delete action
+  onDownload: (submission: ProjectSubmission) => void;// Callback for download action
 }
 
 export default function SubmissionDetailsDialog({
@@ -20,34 +27,19 @@ export default function SubmissionDetailsDialog({
   onDelete,
   onDownload,
 }: SubmissionDetailsDialogProps) {
+  // If no submission is selected, render nothing
   if (!submission) return null;
-
-  const visibilityIcon = () => {
-    switch (submission.visibility.toLowerCase()) {
-      case 'private':
-        return <Lock className="h-3.5 w-3.5" />;
-      case 'internal':
-        return <Users className="h-3.5 w-3.5" />;
-      case 'public':
-        return <Globe className="h-3.5 w-3.5" />;
-      default:
-        return null;
-    }
-  };
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { if (!isOpen) onClose(); }}>
       <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
         <>
+          {/* Header section with title and badges */}
           <DialogHeader>
             <DialogTitle className="text-2xl">{submission.title}</DialogTitle>
             <DialogDescription className="flex flex-wrap gap-3 pt-2">
               <Badge variant="outline" className="text-sm">
                 By {submission.username}
-              </Badge>
-              <Badge variant="outline" className="text-sm flex items-center gap-1 capitalize">
-                {visibilityIcon()}
-                {submission.visibility}
               </Badge>
               <Badge variant="outline" className="text-sm capitalize">
                 Status: {submission.status}
@@ -58,6 +50,7 @@ export default function SubmissionDetailsDialog({
             </DialogDescription>
           </DialogHeader>
 
+          {/* Main content details */}
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <h3 className="text-lg font-semibold">Description</h3>
@@ -81,7 +74,9 @@ export default function SubmissionDetailsDialog({
             </div>
           </div>
 
+          {/* Footer with actions */}
           <div className="flex justify-between gap-2 mt-4">
+            {/* Delete button */}
             <Button
               variant="destructive"
               onClick={() => {
@@ -93,6 +88,8 @@ export default function SubmissionDetailsDialog({
               <Trash2 className="h-4 w-4" />
               Delete Submission
             </Button>
+
+            {/* Download and close buttons */}
             <div className="flex gap-2">
               <Button
                 size="sm"

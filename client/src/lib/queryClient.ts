@@ -1,97 +1,104 @@
+// src/lib/queryClient.ts
+
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 
-async function throwIfResNotOk(res: Response) {
+/**
+ * Throws an error if the response is not OK (status not in the 200–299 range).
+ * Attempts to parse error details from JSON, or falls back to raw text.
+ */
+async function throwIfResNotOk(res: Response): Promise<void> {
   if (!res.ok) {
     try {
-      // First try to parse as JSON for more structured error information
       const errorData = await res.json();
-      console.error('API Error Response:', errorData);
+      console.error("API Error Response:", errorData);
       throw new Error(
-        errorData.message || 
-        errorData.error || 
+        errorData.message ||
+        errorData.error ||
         `API Error: ${res.status} ${res.statusText}`
       );
-    } catch (parseError) {
-      // If JSON parsing fails, fall back to text
+    } catch {
       const text = await res.text();
-      console.error('API Error (raw):', { status: res.status, text });
+      console.error("API Error (raw):", { status: res.status, text });
       throw new Error(`${res.status}: ${text || res.statusText}`);
     }
   }
 }
 
+/**
+ * Generic API request helper for GET/POST/PUT/DELETE with JSON payloads.
+ */
 export async function apiRequest(
   url: string,
-  method: string = 'GET',
-  data?: unknown | undefined,
+  method: string = "GET",
+  data?: unknown
 ): Promise<Response> {
   const res = await fetch(url, {
     method,
     headers: data ? { "Content-Type": "application/json" } : {},
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // Important for cookie-based auth
   });
 
-  // Create a clone of the response before checking if it's ok
-  // This prevents the "body stream already read" error
+  // Clone before reading body to avoid "body already used" error
   const resClone = res.clone();
-  
-  try {
-    await throwIfResNotOk(res);
-    return resClone;
-  } catch (error) {
-    throw error;
-  }
+
+  await throwIfResNotOk(res);
+  return resClone;
 }
 
 type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
+
+/**
+ * Returns a typed query function with optional 401 handling.
+ */
+export function getQueryFn<T>({ on401 }: { on401: UnauthorizedBehavior }): QueryFunction<T> {
+  return async ({ queryKey }) => {
     const url = queryKey[0] as string;
-    console.log(`[QueryClient] Fetching data from: ${url}`);
-    
+    console.log(`[QueryClient] Fetching from: ${url}`);
+
     try {
       const res = await fetch(url, {
         credentials: "include",
         headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-          'X-Requested-With': 'XMLHttpRequest' // Helps identify AJAX requests
-        }
+          "Cache-Control": "no-cache, no-store, must-revalidate",
+          "Pragma": "no-cache",
+          "X-Requested-With": "XMLHttpRequest",
+        },
       });
-      
-      console.log(`[QueryClient] Response status for ${url}: ${res.status} ${res.statusText}`);
-      
-      if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.warn(`[QueryClient] Unauthorized request to ${url}, returning null as configured`);
-        return null;
+
+      console.log(`[QueryClient] Status ${res.status} from ${url}`);
+
+      // Handle 401 unauthorized response as configured
+      if (on401 === "returnNull" && res.status === 401) {
+        console.warn(`[QueryClient] 401 Unauthorized at ${url}, returning null`);
+        return null as T;
       }
-      
+
       await throwIfResNotOk(res);
-      const data = await res.json();
-      console.log(`[QueryClient] Data successfully fetched from ${url}`);
-      return data;
-    } catch (error) {
-      console.error(`[QueryClient] Error fetching from ${url}:`, error);
-      throw error;
+      const json = await res.json();
+      return json as T;
+    } catch (err) {
+      console.error(`[QueryClient] Error fetching ${url}:`, err);
+      throw err;
     }
   };
+}
 
+/**
+ * Global shared QueryClient with default options.
+ */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: 30000, // 30 seconds
+      refetchInterval: 30_000, // Refetch every 30s
       refetchOnWindowFocus: false,
       refetchOnReconnect: false,
-      staleTime: 30000, // 30 seconds
-      retry: 3,
+      staleTime: 30_000, // Consider data fresh for 30s
+      retry: 3, // Retry failed queries up to 3 times
     },
     mutations: {
-      retry: 3,
+      retry: 3, // Retry failed mutations up to 3 times
     },
   },
 });
