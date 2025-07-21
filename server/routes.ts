@@ -3,12 +3,12 @@ import { createServer, type Server } from "http";
 import { z } from "zod";
 import { storage } from "./storage";
 import { insertProjectSubmissionSchema } from "@shared/schema";
-import { generateDraftResponse, generateAnswerSuggestion } from "./openai";
+import { LLM } from "./llm";
 import { setupAuth, isAuthReady } from "./auth";
 import { pool } from "./db";
 import { setupNoAuthProjectSubmissions } from "./disable-auth-for-submissions";
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express, llmService: LLM): Promise<Server> {
   // Add CORS headers for API requests
   app.use((req, res, next) => {
     res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -124,64 +124,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
-  // Get a specific project - requires authentication for private/internal projects
-  // app.get('/api/project-submissions/:id', async (req: Request, res: Response) => {
-  //   try {
-  //     const id = parseInt(req.params.id);
-  //     if (isNaN(id)) {
-  //       return res.status(400).json({ error: 'Invalid ID format' });
-  //     }
-
-  //     // Use direct SQL for better reliability
-  //     const client = await pool.connect();
-  //     try {
-  //       console.log(`Fetching project submission ID ${id} via direct SQL...`);
-
-  //       const result = await client.query(`
-  //         SELECT 
-  //           id, 
-  //           username, 
-  //           title, 
-  //           description, 
-  //           problem, 
-  //           technology, 
-  //           impact, 
-  //           team, 
-  //           status, 
-  //           visibility,
-  //           created_at AS "createdAt",
-  //           user_id AS "userId"
-  //         FROM project_submissions
-  //         WHERE id = $1
-  //       `, [id]);
-
-  //       const submission = result.rows[0];
-
-  //       if (!submission) {
-  //         return res.status(404).json({ error: 'Project submission not found' });
-  //       }
-
-  //       // Only allow access to public projects if not authenticated
-  //       if (!req.isAuthenticated() && submission.visibility !== 'public') {
-  //         return res.status(401).json({ error: 'Authentication required to view this project' });
-  //       }
-
-  //       console.log(`Successfully retrieved project submission ID ${id}`);
-  //       res.json(submission);
-  //     } finally {
-  //       client.release();
-  //     }
-  //   } catch (error) {
-  //     console.error('Error fetching project submission:', error);
-  //     console.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-  //     res.status(500).json({ 
-  //       error: 'Failed to fetch project submission',
-  //       message: error instanceof Error ? error.message : 'Unknown error'
-  //     });
-  //   }
-  // });
-
 
   // DELETE a project submission
   app.delete(
@@ -380,7 +322,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Calling OpenAI generateDraftResponse...");
-      const suggestion = await generateDraftResponse(question, evalCriteria, context);      
+      const suggestion = await llmService.generateDraftResponse(question, evalCriteria, context);      
       console.log("Draft suggestion generated successfully");
 
       res.json({ suggestion });
@@ -422,7 +364,7 @@ app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
     }
 
     console.log("Calling OpenAI generateDraftResponse...");
-    const suggestion = await generateDraftResponse(question, evalCriteria, context);
+    const suggestion = await llmService.generateDraftResponse(question, evalCriteria, context);
     console.log("Draft suggestion generated successfully");
 
     res.json({ suggestion });
@@ -447,7 +389,7 @@ app.post('/api/draft-suggestion', async (req: Request, res: Response) => {
 app.post('/api/evaluate-answer', async (req: Request, res: Response) => {
   try {
     const { question, answer, evalCriteria, context } = req.body;
-    const result = await generateAnswerSuggestion(question, evalCriteria, answer, context);
+    const result = await llmService.generateAnswerSuggestion(question, evalCriteria, answer, context);
     res.json(result);
   } catch (error) {
     console.error('Error evaluating answer:', error);

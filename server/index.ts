@@ -6,6 +6,8 @@ import { setupVite, serveStatic, log } from "./vite";
 import fs from "fs";
 import { performStartupChecks } from "./startup-checks";
 import { healthCheckMiddleware } from "./health-checks";
+import { LLM } from "./llm";
+import { getLLMClient } from "./llmFactory";
 
 const app = express();
 
@@ -108,9 +110,11 @@ app.use((req, res, next) => {
 (async () => {
   // Run startup checks to verify database configuration
   await performStartupChecks();
+  // Initialize LLM client
+  const llmService: LLM = getLLMClient();
   
   // Register routes and get HTTP server
-  const server = await registerRoutes(app);
+  const server = await registerRoutes(app, llmService);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
