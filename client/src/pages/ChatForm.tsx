@@ -25,12 +25,12 @@ export default function ChatForm() {
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
   const [isSaved, setIsSaved] = useState(false);
   const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
-  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'visibility' | 'success' | 'profile'>('welcome');
-  const [selectedVisibility, setSelectedVisibility] = useState<string>("private");
+  const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'terms' | 'success' | 'profile'>('welcome');
   const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
   const [draftResponse, setDraftResponse] = useState<string | null>(null);
   const lastUserInputRef = useRef<string | null>(null);
   const [showButton, setShowButton] = useState(false);
+  const [showNavigation, setShowNavigation] = useState(false);
 
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -45,7 +45,6 @@ export default function ChatForm() {
       setIsSaved(false);
       setGeneratingDraftForQuestion(null);
       setOnboardingStage('welcome');
-      setSelectedVisibility("private");
       setProfileChoice(null);
       
       setTimeout(() => {
@@ -163,9 +162,6 @@ export default function ChatForm() {
       if (savedAnswers) {
         const parsedAnswers = JSON.parse(savedAnswers);
         setAnswers(parsedAnswers);
-        if (parsedAnswers.visibility) {
-          setSelectedVisibility(parsedAnswers.visibility);
-        }
       }
     } catch (error) {
       console.error('Error loading answers from localStorage:', error);
@@ -184,6 +180,7 @@ export default function ChatForm() {
       setCurrentQuestion(0);
       setTimeout(() => {
         addBotMessage(questions[0].text);
+        setShowNavigation(true);
       }, 500);
     }
   };
@@ -220,7 +217,7 @@ export default function ChatForm() {
   }, [messages]);
 
   // Check if all questions have been answered and visibility is selected
-  const isComplete = (onboardingStage === 'questions' && currentQuestion >= questions.length) || onboardingStage === 'visibility';
+  const isComplete = (onboardingStage === 'questions' && currentQuestion >= questions.length) || onboardingStage === 'terms';
 
   // Add a bot message to the chat
   const addBotMessage = (content: string) => {
@@ -314,9 +311,11 @@ export default function ChatForm() {
 
   const handleNextQuestion = () => {
     setCurrentQuestion(prev => prev + 1);
+    setShowNavigation(false);
     if (currentQuestion + 1 < questions.length) {
       setTimeout(() => {
         addBotMessage(questions[currentQuestion + 1].text);
+        setShowNavigation(true);
       }, 500);
     } else {
       setTimeout(() => {
@@ -327,6 +326,7 @@ export default function ChatForm() {
   };
 
   const handleIgnoreButton = () => {
+    setShowNavigation(false);
     addNextMessage("Ok, let's move on.");
     if (currentQuestion >= 0 && currentQuestion < questions.length) {
       const questionId = questions[currentQuestion].id;
@@ -343,6 +343,7 @@ export default function ChatForm() {
     if (currentQuestion + 1 < questions.length) {
       setTimeout(() => {
         addBotMessage(questions[currentQuestion + 1].text);
+        setShowNavigation(true);
       }, 500);
     } else {
       setTimeout(() => {
@@ -479,16 +480,15 @@ export default function ChatForm() {
   };
 
   const handleSaveToDatabase = () => {
-    const answersWithVisibility = {
+    const answersWithTerms = {
       ...answers,
-      visibility: selectedVisibility
     };
     try {
-      localStorage.setItem('projectAnswers', JSON.stringify(answersWithVisibility));
+      localStorage.setItem('projectAnswers', JSON.stringify(answersWithTerms));
     } catch (error) {
       console.error('Error saving to localStorage:', error);
     }
-    submitProjectMutation.mutate(answersWithVisibility, {
+    submitProjectMutation.mutate(answersWithTerms, {
       onSuccess: () => {
         setOnboardingStage('success');
         setTimeout(() => {
@@ -500,7 +500,7 @@ export default function ChatForm() {
         }, 500);
       }
     });
-    setAnswers(answersWithVisibility);
+    setAnswers(answersWithTerms);
   };
 
   const handleProfileChoice = (choice: 'yes' | 'later') => {
@@ -606,7 +606,7 @@ export default function ChatForm() {
           )}
           
           {/* Navigation Area - Only show when not in preview mode and in questions stage */}
-          {!isPreviewMode && !isComplete && onboardingStage === 'questions' && currentQuestion >= 0 && (
+          {!isPreviewMode && !isComplete && onboardingStage === 'questions' && currentQuestion >= 0 && showNavigation && (
             <ChatNavigation 
               currentQuestion={currentQuestion}
               totalQuestions={questions.length}
@@ -618,7 +618,7 @@ export default function ChatForm() {
           )}
           
           {/* Visibility Selector - Only show in visibility stage */}
-          {!isPreviewMode && onboardingStage === 'visibility' && (
+          {!isPreviewMode && onboardingStage === 'terms' && (
             <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
               <div className="flex justify-center gap-5">
                 <Button 
@@ -682,7 +682,7 @@ export default function ChatForm() {
                 onShowPreview={
                   currentQuestion >= questions.length
                     ? () => {
-                        setOnboardingStage('visibility');
+                        setOnboardingStage('terms');
                       }
                     : undefined
                 }
@@ -717,7 +717,7 @@ export default function ChatForm() {
             />
           )}
 
-          {!isPreviewMode && onboardingStage === 'visibility' && (
+          {!isPreviewMode && onboardingStage === 'terms' && (
             <div className="flex flex-col sm:flex-row justify-center gap-3 pb-5">
               <Button
                 onClick={handleSaveToDatabase}
