@@ -17,7 +17,6 @@ export default function AdminPanel() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [submissionToDelete, setSubmissionToDelete] = useState<ProjectSubmission | null>(null);
-  const [visibilityFilter, setVisibilityFilter] = useState<string>("all");
   const queryClientInstance = useQueryClient();
 
   // Check authentication status
@@ -84,9 +83,6 @@ export default function AdminPanel() {
 
   // Apply filter and search query
   const filteredSubmissions = projectSubmissions?.filter((submission: ProjectSubmission) => {
-    if (visibilityFilter !== 'all' && submission.visibility.toLowerCase() !== visibilityFilter.toLowerCase()) {
-      return false;
-    }
     if (!searchQuery) return true;
     const lower = searchQuery.toLowerCase();
     return (

@@ -8,7 +8,6 @@ export interface ProjectData {
   impact?: string;
   team?: string;
   status?: string;
-  visibility?: string;
 }
 
 /**
@@ -44,17 +43,6 @@ export function generateMarkdown(data: ProjectData): string {
 
   if (data.status) {
     markdown += `## Current Status\n${data.status}\n\n`;
-  }
-
-  // Visibility handling with user-friendly labels
-  if (data.visibility) {
-    let visibilityText = "Private only";
-    if (data.visibility === "internal") {
-      visibilityText = "Shared with Guild members";
-    } else if (data.visibility === "public") {
-      visibilityText = "Public on Digital Village website";
-    }
-    markdown += `## Visibility\n${visibilityText}\n\n`;
   }
 
   return markdown;

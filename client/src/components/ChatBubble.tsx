@@ -29,22 +29,19 @@ export function ChatBubble({
   onEdit,
   messages,
 }: ChatBubbleProps) {
+  const time = message.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
   const isAdvice = message.type === "advice";
   const isNext = message.type === "next";
   const isExample = message.type === "example";
   const isBot = message.type === "bot" || isAdvice || isNext || isExample;
   const isAIGenerated = message.isAIGenerated || isExample;
 
-  const time = message.timestamp.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-
   const isCurrentQuestion =
     typeof currentQuestion === "number" && message.questionId === currentQuestion;
 
-  // Keywords that suppress "Give me an example" and "Ignore" buttons
-  const noDraftButtonKeywords = [
+  /** Determine if action buttons should be shown */
+  const noActionKeywords = [
     "preview your project",
     "project visibility",
     "congratulations",
@@ -53,44 +50,44 @@ export function ChatBubble({
     "thanks for sharing your project",
   ];
 
-  const containsKeyword = (content: string) =>
-    noDraftButtonKeywords.some((keyword) =>
-      content.toLowerCase().includes(keyword.toLowerCase())
-    );
+  const suppressActions = noActionKeywords.some(keyword =>
+    message.content.toLowerCase().includes(keyword)
+  );
 
-  // Conditions for showing buttons
-  const showDraftButton =
+  const canShowActions =
     isAdvice &&
     onRequestDraft &&
     typeof currentQuestion === "number" &&
     currentQuestion >= 1 &&
-    !containsKeyword(message.content) &&
-    isCurrentQuestion;
+    isCurrentQuestion &&
+    !suppressActions;
 
-  const showIgnoreButton =
-    isAdvice && onRequestDraft && !containsKeyword(message.content) && isCurrentQuestion;
+  const showDraftButton = canShowActions;
+  const showEditButton = canShowActions;
+  const showIgnoreButton = canShowActions;
 
-  const showEditButton =
-    isAdvice && onRequestDraft && !containsKeyword(message.content) && isCurrentQuestion;
-
-  // Check if this is the last advice message for the current question
+  /** Determine if this is the last advice for the current question */
   const isLastAdviceForCurrentQuestion = (() => {
     if (!isAdvice || typeof currentQuestion !== "number") return false;
-
-    const relevantAdvice = messages.filter(
-      (msg) => msg.type === "advice" && msg.questionId === currentQuestion
+    const adviceMessages = messages.filter(
+      msg => msg.type === "advice" && msg.questionId === currentQuestion
     );
 
-    const isLastAdvice =
-      relevantAdvice.length > 0 &&
-      relevantAdvice[relevantAdvice.length - 1] === message;
+    const isLastAdvice = adviceMessages[adviceMessages.length - 1] === message;
+    const messageIndex = messages.findIndex(msg => msg === message);
+    const isNearEnd = messageIndex >= messages.length - 2;
+    return isLastAdvice && isNearEnd;
 
-    const isAtEnd = (() => {
-      const msgIndex = messages.findIndex((msg) => msg === message);
-      return msgIndex === messages.length - 1 || msgIndex === messages.length - 2;
-    })();
+//     const isLastAdvice =
+//       relevantAdvice.length > 0 &&
+//       relevantAdvice[relevantAdvice.length - 1] === message;
 
-    return isLastAdvice && isAtEnd ;
+//     const isAtEnd = (() => {
+//       const msgIndex = messages.findIndex((msg) => msg === message);
+//       return msgIndex === messages.length - 1 || msgIndex === messages.length - 2;
+//     })();
+
+//     return isLastAdvice && isAtEnd ;
   })();
 
   const [hasRequestedExample, setHasRequestedExample] = useState(false);
@@ -98,9 +95,9 @@ export function ChatBubble({
 
   return (
     <div className={cn("flex items-start mb-4", !isBot && "justify-end")}>
-      {/* Avatar: Bot or User */}
+      {/* Bot Avatar */}
       {isBot && (
-        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-white flex items-center justify-center mr-2 sm:mr-3 flex-shrink-0">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary text-white flex items-center justify-center mr-2 sm:mr-3">
           <ToyBrick className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       )}
@@ -117,7 +114,7 @@ export function ChatBubble({
                 : "bg-primary text-white"
             )}
           >
-            {/* AI Example Tag + Edit Button */}
+            {/* AI Example Tag + Edit */}
             {isAIGenerated && (
               <div className="mb-1 flex items-center">
                 <span className="text-xs font-medium px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
@@ -136,10 +133,62 @@ export function ChatBubble({
               </div>
             )}
 
-            {/* Message Content */}
+            {/* Main Message */}
             <p className="text-sm sm:text-base break-words">{message.content}</p>
 
-            {/* Footer Action Buttons */}
+            {/* Action Buttons */}
+            {isLastAdviceForCurrentQuestion && canShowActions && (
+              <div className="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3">
+                {showDraftButton && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                    onClick={() => onRequestDraft?.(questions[currentQuestion].text)}
+                    disabled={isGeneratingDraft}
+                  >
+                    {isGeneratingDraft ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin text-blue-600" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <LightbulbIcon className="mr-1 h-3 w-3 text-blue-600" />
+                        Give me an example
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {showEditButton && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                    onClick={() =>
+                      onEdit?.(answers[questions[currentQuestion]?.id] || "")
+                    }
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Edit previous response
+                  </Button>
+                )}
+
+                {showIgnoreButton && onIgnore && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-800"
+                    onClick={onIgnore}
+                  >
+                    Ignore
+                  </Button>
+                )}
+              </div>
+            )}
+
+<!--             {/* Footer Action Buttons */}
             {isLastAdviceForCurrentQuestion &&
               (showDraftButton || showIgnoreButton || showEditButton) && (
                 <div className="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3">
@@ -172,9 +221,9 @@ export function ChatBubble({
                         </>
                       )}
                     </Button>
-                  )}
+                  )} -->
 
-                  {showEditButton && (
+<!--                   {showEditButton && (
                     <Button
                       variant="outline"
                       size="sm"
@@ -199,24 +248,19 @@ export function ChatBubble({
                     </Button>
                   )}
                 </div>
-              )}
+              )} -->
           </div>
 
           {/* Timestamp */}
-          <div
-            className={cn(
-              "text-xs text-gray-500 mt-1",
-              !isBot && "text-right"
-            )}
-          >
+          <div className={cn("text-xs text-gray-500 mt-1", !isBot && "text-right")}>
             {time}
           </div>
         </div>
       </div>
 
-      {/* User avatar */}
+      {/* User Avatar */}
       {!isBot && (
-        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center ml-2 sm:ml-3 flex-shrink-0">
+        <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gray-200 text-gray-600 flex items-center justify-center ml-2 sm:ml-3">
           <PersonStanding className="h-4 w-4 sm:h-5 sm:w-5" />
         </div>
       )}
