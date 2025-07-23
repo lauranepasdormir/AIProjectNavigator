@@ -595,7 +595,7 @@ export default function ChatForm() {
                   answers={answers}
                   onRequestDraft={!isComplete ? handleDraftRequest : undefined}
                   currentQuestion={currentQuestion}
-                  isGeneratingDraft={message.content === generatingDraftForQuestion && generateDraftMutation.isPending}
+                  isGeneratingDraft={message.questionId === currentQuestion && generateDraftMutation.isPending}
                   onIgnore={handleIgnoreButton}
                   nextQuestion={handleNextQuestion}
                   onEdit={(text) => editInput(text)}
