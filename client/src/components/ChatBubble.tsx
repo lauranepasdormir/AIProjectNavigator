@@ -101,10 +101,10 @@ export function ChatBubble({
       )}
 
       <div className={cn("flex-1 max-w-[90%] sm:max-w-[80%]", !isBot && "flex justify-end")}>
-        <div className="w-full">
+        <div className="">
           <div
             className={cn(
-              "rounded-lg p-2 sm:p-3 inline-block w-full",
+              "rounded-lg p-2 sm:p-3 inline-block",
               isAIGenerated
                 ? "bg-amber-50 text-gray-800"
                 : isBot
