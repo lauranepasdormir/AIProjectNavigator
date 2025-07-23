@@ -194,6 +194,7 @@ export function ChatBubble({
                       size="sm"
                       className="text-xs text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-800 font-medium"
                       onClick={onIgnore}
+                      disabled={isGeneratingDraft}
                     >
                       Ignore
                     </Button>
