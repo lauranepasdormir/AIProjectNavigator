@@ -3,8 +3,7 @@ import { ChatMessage } from "@shared/schema";
 import { ToyBrick, PersonStanding, LightbulbIcon, Loader2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { questions } from "@/lib/questions";
-import React, { useState, useEffect } from "react";
-
+import React from "react";
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -55,43 +54,22 @@ export function ChatBubble({
   );
 
   const canShowActions =
-    isAdvice &&
-    onRequestDraft &&
-    typeof currentQuestion === "number" &&
-    currentQuestion >= 1 &&
-    isCurrentQuestion &&
-    !suppressActions;
+      isAdvice &&
+      onRequestDraft &&
+      typeof currentQuestion === "number" &&
+      currentQuestion >= 1 &&
+      message.questionId === currentQuestion &&
+      !suppressActions &&
+      (() => {
+        const adviceMessages = messages.filter(
+          msg => msg.type === "advice" && msg.questionId === currentQuestion
+        );
+        return adviceMessages.length > 0 && adviceMessages[adviceMessages.length - 1] === message;
+      })();
 
   const showDraftButton = canShowActions;
   const showEditButton = canShowActions;
   const showIgnoreButton = canShowActions;
-
-  /** Determine if this is the last advice for the current question */
-  const isLastAdviceForCurrentQuestion = (() => {
-    if (!isAdvice || typeof currentQuestion !== "number") return false;
-    const adviceMessages = messages.filter(
-      msg => msg.type === "advice" && msg.questionId === currentQuestion
-    );
-
-    const isLastAdvice = adviceMessages[adviceMessages.length - 1] === message;
-    const messageIndex = messages.findIndex(msg => msg === message);
-    const isNearEnd = messageIndex >= messages.length - 2;
-    return isLastAdvice && isNearEnd;
-
-//     const isLastAdvice =
-//       relevantAdvice.length > 0 &&
-//       relevantAdvice[relevantAdvice.length - 1] === message;
-
-//     const isAtEnd = (() => {
-//       const msgIndex = messages.findIndex((msg) => msg === message);
-//       return msgIndex === messages.length - 1 || msgIndex === messages.length - 2;
-//     })();
-
-//     return isLastAdvice && isAtEnd ;
-  })();
-
-  const [hasRequestedExample, setHasRequestedExample] = useState(false);
-
 
   return (
     <div className={cn("flex items-start mb-4", !isBot && "justify-end")}>
@@ -103,7 +81,7 @@ export function ChatBubble({
       )}
 
       <div className={cn("flex-1 max-w-[90%] sm:max-w-[80%]", !isBot && "flex justify-end")}>
-        <div className="">
+        <div>
           <div
             className={cn(
               "rounded-lg p-2 sm:p-3 inline-block",
@@ -136,15 +114,19 @@ export function ChatBubble({
             {/* Main Message */}
             <p className="text-sm sm:text-base break-words">{message.content}</p>
 
-            {/* Action Buttons */}
-            {isLastAdviceForCurrentQuestion && canShowActions && (
+            {/* Action Buttons (stable) */}
+            {canShowActions && (
               <div className="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3">
                 {showDraftButton && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-                    onClick={() => onRequestDraft?.(questions[currentQuestion].text)}
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
+                    onClick={() => {
+                      if (!isGeneratingDraft) {
+                        onRequestDraft?.(questions[currentQuestion]?.text ?? "");
+                      }
+                    }}
                     disabled={isGeneratingDraft}
                   >
                     {isGeneratingDraft ? (
@@ -165,7 +147,7 @@ export function ChatBubble({
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+                    className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium flex items-center"
                     onClick={() =>
                       onEdit?.(answers[questions[currentQuestion]?.id] || "")
                     }
@@ -175,80 +157,26 @@ export function ChatBubble({
                   </Button>
                 )}
 
-                {showIgnoreButton && onIgnore && (
+                {showIgnoreButton && (
                   <Button
                     variant="outline"
                     size="sm"
-                    className="text-xs text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-800"
+                    className="text-xs text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-800 font-medium"
                     onClick={onIgnore}
+                    disabled={isGeneratingDraft} // <-- disables while AI is generating
                   >
-                    Ignore
+                    {isGeneratingDraft ? (
+                      <>
+                        <Loader2 className="mr-1 h-3 w-3 animate-spin text-gray-600" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Ignore"
+                    )}
                   </Button>
                 )}
               </div>
             )}
-
-<!--             {/* Footer Action Buttons */}
-            {isLastAdviceForCurrentQuestion &&
-              (showDraftButton || showIgnoreButton || showEditButton) && (
-                <div className="mt-2 pt-2 border-t border-gray-200 flex flex-wrap gap-2 sm:gap-3">
-                  {showDraftButton && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
-                      // onClick={() => { 
-                      //   onRequestDraft?.(questions[currentQuestion].text);                        
-                      // }}
-                      // disabled={isGeneratingDraft}
-                      onClick={() => {
-                        if (!hasRequestedExample) {
-                          onRequestDraft?.(questions[currentQuestion].text)
-                          setHasRequestedExample(true);
-                        }
-                      }}
-                      disabled={isGeneratingDraft || hasRequestedExample}
-                    >
-                      {isGeneratingDraft ? (
-                        <>
-                          <Loader2 className="mr-1 h-3 w-3 animate-spin text-blue-600" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <LightbulbIcon className="mr-1 h-3 w-3 text-blue-600" />
-                          Give me an example
-                        </>
-                      )}
-                    </Button>
-                  )} -->
-
-<!--                   {showEditButton && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium flex items-center"
-                      onClick={() =>
-                        onEdit?.(answers[questions[currentQuestion]?.id] || "")
-                      }
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Edit previous response
-                    </Button>
-                  )}
-
-                  {showIgnoreButton && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="text-xs text-gray-600 border-gray-300 hover:bg-gray-100 hover:text-gray-800 font-medium"
-                      onClick={onIgnore}
-                    >
-                      Ignore
-                    </Button>
-                  )}
-                </div>
-              )} -->
           </div>
 
           {/* Timestamp */}
