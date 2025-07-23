@@ -88,7 +88,7 @@ export function ChatBubble({
       return msgIndex === messages.length - 1 || msgIndex === messages.length - 2;
     })();
 
-    return isLastAdvice && isAtEnd;
+    return isLastAdvice ;
   })();
 
   return (
@@ -143,9 +143,9 @@ export function ChatBubble({
                       variant="outline"
                       size="sm"
                       className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
-                      onClick={() =>
-                        onRequestDraft?.(questions[currentQuestion].text)
-                      }
+                      onClick={() => { 
+                        onRequestDraft?.(questions[currentQuestion].text);                        
+                      }}
                       disabled={isGeneratingDraft}
                     >
                       {isGeneratingDraft ? (
