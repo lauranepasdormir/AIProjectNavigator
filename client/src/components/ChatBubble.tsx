@@ -3,6 +3,8 @@ import { ChatMessage } from "@shared/schema";
 import { ToyBrick, PersonStanding, LightbulbIcon, Loader2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { questions } from "@/lib/questions";
+import React, { useState, useEffect } from "react";
+
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -88,8 +90,11 @@ export function ChatBubble({
       return msgIndex === messages.length - 1 || msgIndex === messages.length - 2;
     })();
 
-    return isLastAdvice && isAtEnd;
+    return isLastAdvice && isAtEnd ;
   })();
+
+  const [hasRequestedExample, setHasRequestedExample] = useState(false);
+
 
   return (
     <div className={cn("flex items-start mb-4", !isBot && "justify-end")}>
@@ -143,10 +148,17 @@ export function ChatBubble({
                       variant="outline"
                       size="sm"
                       className="text-xs text-blue-600 border-blue-300 hover:bg-blue-50 hover:text-blue-700 font-medium"
-                      onClick={() =>
-                        onRequestDraft?.(questions[currentQuestion].text)
-                      }
-                      disabled={isGeneratingDraft}
+                      // onClick={() => { 
+                      //   onRequestDraft?.(questions[currentQuestion].text);                        
+                      // }}
+                      // disabled={isGeneratingDraft}
+                      onClick={() => {
+                        if (!hasRequestedExample) {
+                          onRequestDraft?.(questions[currentQuestion].text)
+                          setHasRequestedExample(true);
+                        }
+                      }}
+                      disabled={isGeneratingDraft || hasRequestedExample}
                     >
                       {isGeneratingDraft ? (
                         <>
