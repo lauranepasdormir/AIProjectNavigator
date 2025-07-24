@@ -127,10 +127,10 @@ export function ChatBubble({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-xs text-amber-700 hover:text-amber-900 ml-auto"
+                    className="text-xs px-2 py-0.5 bg-amber-100 text-amber-800 hover:bg-orange-200 text-orange-900 ml-auto"
                     onClick={() => onEdit(message.content)}
                   >
-                    Edit
+                    Copy
                   </Button>
                 )}
               </div>

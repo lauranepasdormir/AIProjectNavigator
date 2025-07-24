@@ -54,7 +54,7 @@ export const questions: Question[] = [
     id: 'team',
     text: "Who are the team members? (Optional)",
     required: false,
-    placeholder: "List team members or type 'skip'"
+    placeholder: "List team members or press 'skip'"
   },
   {
     id: 'status',

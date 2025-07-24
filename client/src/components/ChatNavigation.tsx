@@ -7,7 +7,7 @@ interface ChatNavigationProps {
   totalQuestions: number;            // Total number of questions
   isCurrentQuestionRequired: boolean;// Whether the current question must be answered before skipping
   onPrevious: () => void;            // Callback for "Back" button
-  onSkip: () => void;                // Callback for "Skip" button
+  onSkip: () => void;                // Callback for  button
   isInputDisabled: boolean;          // Whether inputs should be temporarily disabled (e.g., while generating)
 }
 

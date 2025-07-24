@@ -31,6 +31,8 @@ export default function ChatForm() {
   const lastUserInputRef = useRef<string | null>(null);
   const [showButton, setShowButton] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -190,16 +192,16 @@ export default function ChatForm() {
       const timeout1 = setTimeout(() => {
         setOnboardingStage('purpose');
         addBotMessage(
-          "The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. In this way, we can better connect you with new opportunities."
+          "The purpose of this is to share your project experience with prospective customers to showcase your capabilities and expertise. Take into account that the information you provid will be used for marketing purposes and will be publicly visible on the Digital Village platform."
         );
       }, 2000);
 
       const timeout2 = setTimeout(() => {
         addBotMessage(
-          "Keep in mind that the information provided by you will be used for marketing purposes and will be publicly visible on the Digital Village platform."
+          "This platform provides feedback to improve your responses and can generate draft responses for you. Keep in mind, you'll have the opportunity to edit your responses before submitting."
         );
         setShowButton(true);
-      }, 4000);
+      }, 5000);
 
       return () => {
         clearTimeout(timeout1);
@@ -658,10 +660,11 @@ export default function ChatForm() {
               <form
                 onSubmit={e => {
                   e.preventDefault();
+                  setIsSubmitting(true);
                   const value = (e.target as any).elements[0].value;
                   handleSubmit(value);
                   setDraftResponse(value);
-                }}
+                }}      
                 className="border-t p-2 sm:p-3 bg-white flex flex-col gap-2"
               >
                 <select required={questions[currentQuestion].required} className="border rounded px-2 py-1">
@@ -674,7 +677,13 @@ export default function ChatForm() {
                     )
                   )}
                 </select>
-                <button type="submit" className="mt-2 px-4 py-2 bg-primary text-white rounded">Next</button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`mt-2 px-4 py-2 rounded text-white ${isSubmitting ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary'}`}
+                >
+                  {isSubmitting ? 'Loading...' : 'Next'}
+                </button>             
               </form>
             ) : (
               <ChatInput 
