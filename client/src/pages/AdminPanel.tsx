@@ -7,6 +7,7 @@ import { generateMarkdown, downloadMarkdown } from "@/lib/markdown";
 import SubmissionTable from "@/components/admin/SubmissionTable";
 
 // Lazy-loaded dialogs for performance optimization
+// Lazy-loaded dialogs for performance optimization
 const SubmissionDetailsDialog = lazy(() => import("@/components/admin/SubmissionDetailsDialog"));
 const DeleteConfirmationDialog = lazy(() => import("@/components/admin/DeleteConfirmationDialog"));
 
@@ -189,3 +190,6 @@ export default function AdminPanel() {
     </div>
   );
 }
+
+
+
