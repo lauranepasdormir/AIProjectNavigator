@@ -19,20 +19,18 @@ export default function ChatForm() {
   // ------------- STATE MANAGEMENT -------------
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [currentQuestion, setCurrentQuestion] = useState(-1);
-  const [currentCriteria, setCurrentCriteria] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [previewViewMode, setPreviewViewMode] = useState<'edit' | 'preview'>('edit');
   const [isSaved, setIsSaved] = useState(false);
   const [generatingDraftForQuestion, setGeneratingDraftForQuestion] = useState<string | null>(null);
   const [onboardingStage, setOnboardingStage] = useState<'welcome' | 'purpose' | 'questions' | 'terms' | 'success' | 'profile'>('welcome');
-  const [profileChoice, setProfileChoice] = useState<'yes' | 'later' | null>(null);
-  const [draftResponse, setDraftResponse] = useState<string | null>(null);
+  const [updateProfile, setUpdateProfile] = useState<'yes' | null>(null);
   const lastUserInputRef = useRef<string | null>(null);
   const [showButton, setShowButton] = useState(false);
   const [showNavigation, setShowNavigation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [showNextButton, setShowNextButton] = useState(false);
 
   // Clear all project data from localStorage and reset state
   const clearProjectData = () => {
@@ -41,13 +39,12 @@ export default function ChatForm() {
       setAnswers({});
       setMessages([]);
       setCurrentQuestion(-1);
-      setCurrentCriteria(0);
       setIsPreviewMode(false);
       setPreviewViewMode('edit');
       setIsSaved(false);
       setGeneratingDraftForQuestion(null);
       setOnboardingStage('welcome');
-      setProfileChoice(null);
+      setUpdateProfile(null);
       
       setTimeout(() => {
         const welcomeMessage: ChatMessage = {
@@ -187,6 +184,7 @@ export default function ChatForm() {
     }
   };
 
+  // Handle onboarding stage transitions
   useEffect(() => {
     if (onboardingStage === 'welcome') {
       const timeout1 = setTimeout(() => {
@@ -218,7 +216,7 @@ export default function ChatForm() {
     }
   }, [messages]);
 
-  // Check if all questions have been answered and visibility is selected
+  // Check if all questions have been answered and users agreed to terms
   const isComplete = (onboardingStage === 'questions' && currentQuestion >= questions.length) || onboardingStage === 'terms';
 
   // Add a bot message to the chat
@@ -233,6 +231,7 @@ export default function ChatForm() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  // Add an advice message to the chat
   const addAdviceMessage = (content: string) => {
     const newMessage: ChatMessage = {
       id: uuidv4(),
@@ -244,6 +243,7 @@ export default function ChatForm() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  // Add an example message to the chat
   const addExampleMessage = (content: string) => {
     const newMessage: ChatMessage = {
       id: uuidv4(),
@@ -256,6 +256,7 @@ export default function ChatForm() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  // Add a user message to the chat
   const addUserMessage = (content: string, isAIGenerated: boolean = false) => {
     const newMessage: ChatMessage = {
       id: uuidv4(),
@@ -267,6 +268,7 @@ export default function ChatForm() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  // Add a next message to the chat
   const addNextMessage = (content: string, isAIGenerated: boolean = false) => {
     const newMessage: ChatMessage = {
       id: uuidv4(),
@@ -278,10 +280,12 @@ export default function ChatForm() {
     setMessages(prev => [...prev, newMessage]);
   };
 
+  // Function to generate the next question message
   const nextQuestion = (userInput: string, question: (typeof questions)[number]): string => {
     return `Great! Let's move on.`;
   };
 
+  // Function to generate advice based on user input, question, and context
   const generateAdvice = async (
     userInput: string,
     questionObj: (typeof questions)[number],
@@ -309,8 +313,7 @@ export default function ChatForm() {
     }
   };
 
-  const [showNextButton, setShowNextButton] = useState(false);
-
+  // Handle next question logic
   const handleNextQuestion = () => {
     setCurrentQuestion(prev => prev + 1);
     setShowNavigation(false);
@@ -322,11 +325,12 @@ export default function ChatForm() {
     } else {
       setTimeout(() => {
         addBotMessage("Thanks for providing all the information!");
-      }, 500);
+      }, 1000);
     }
     setShowNextButton(false);
   };
 
+  // Handle ignore button click
   const handleIgnoreButton = () => {
     setShowNavigation(false);
     addNextMessage("Ok, let's move on.");
@@ -350,12 +354,13 @@ export default function ChatForm() {
     } else {
       setTimeout(() => {
         addBotMessage("Thanks for providing all the information!");
-      }, 500);
+      }, 1000);
     }
     setShowNextButton(false);
     editInput("");
   };
 
+  // Handle form submission
   const handleSubmit = async (value: string) => {
     addUserMessage(value);
     lastUserInputRef.current = value;
@@ -387,7 +392,6 @@ export default function ChatForm() {
       const isLastQuestion = currentQuestion === questions.length - 1;
       if (satisfied || isLastQuestion) {
         setCurrentQuestion(currentQuestion + 1);
-        setCurrentCriteria(prev => prev + 1);
         if (!isLastQuestion) {
           const affirmation = await generateAdvice(value, questions[currentQuestion], answers);
           addAdviceMessage(affirmation);
@@ -397,7 +401,7 @@ export default function ChatForm() {
         } else {
           setTimeout(() => {
             addBotMessage("Thanks for providing all the information!");
-          }, 500);
+          }, 1000);
         }
       } else {
         const advice = await generateAdvice(value, questions[currentQuestion], answers);
@@ -414,14 +418,15 @@ export default function ChatForm() {
     }
   };
 
+  // Handle previous question navigation
   const handlePrevious = () => {
     if (currentQuestion > 0) {
       setCurrentQuestion(prev => prev - 1);
-      setCurrentCriteria(prev => prev - 1);
       addBotMessage("Let's go back to the previous question. " + questions[currentQuestion - 1].text);
     }
   };
 
+  // Handle skip button click
   const handleSkip = () => {
     if (currentQuestion >= 0 && currentQuestion < questions.length && !questions[currentQuestion].required) {
       addUserMessage("Skip");
@@ -434,7 +439,6 @@ export default function ChatForm() {
         console.error('Error saving to localStorage:', error);
       }
       setCurrentQuestion(prev => prev + 1);
-      setCurrentCriteria(prev => prev + 1);
       if (currentQuestion + 1 < questions.length) {
         setTimeout(() => {
           addBotMessage(questions[currentQuestion + 1].text);
@@ -442,7 +446,7 @@ export default function ChatForm() {
       } else {
         setTimeout(() => {
           addBotMessage("Thanks for providing all the information!");
-        }, 500);
+        }, 1000);
       }
     }
   };
@@ -455,12 +459,14 @@ export default function ChatForm() {
     setIsPreviewMode(false);
   };
 
+  // Handle download of markdown file
   const handleDownload = () => {
     const markdown = generateMarkdown(answers);
     const filename = `${answers.title || 'ai-project'}.md`;
     downloadMarkdown(markdown, filename);
   };
 
+  // Handle update answer logic
   const handleUpdateAnswer = (id: string, value: string) => {
     const updatedAnswers = { ...answers };
     updatedAnswers[id] = value;
@@ -481,6 +487,7 @@ export default function ChatForm() {
     setPreviewViewMode(mode);
   };
 
+  // Handle save to database logic
   const handleSaveToDatabase = () => {
     const answersWithTerms = {
       ...answers,
@@ -499,28 +506,25 @@ export default function ChatForm() {
             addBotMessage("Your Digital Village profile helps attract clients. Want to update it now for more opportunities? ");
             setOnboardingStage('profile');
           }, 1000);
-        }, 500);
+        }, 1000);
       }
     });
     setAnswers(answersWithTerms);
   };
 
-  const handleProfileChoice = (choice: 'yes' | 'later') => {
-    setProfileChoice(choice);
-    if (choice === 'yes') {
+  // Handle update profile logic
+  const handleUpdateProfile = (choice: 'yes') => {
+    setUpdateProfile(choice);
+    if (updateProfile === 'yes') {
       addUserMessage("Update my profile.");
       setTimeout(() => {
         addBotMessage("Great choice! I'm opening the Digital Village Network App for you now. You'll be able to update your profile there.");
         window.open('https://digitalvillage.app/', '_blank');
       }, 500);
-    } else {
-      addUserMessage("Maybe later.");
-      setTimeout(() => {
-        addBotMessage("No problem! Remember you can update your Digital Village profile anytime to enhance your visibility to clients. Thanks for sharing your project with us!");
-      }, 500);
     }
   };
 
+  // Handle draft request for generating AI suggestions
   const handleDraftRequest = (question: string) => {
     setGeneratingDraftForQuestion(question);
     const questionId = questions[currentQuestion]?.id;
@@ -535,6 +539,9 @@ export default function ChatForm() {
     });
   };
 
+  // Mutation to evaluate user answers
+  // This mutation sends the user's answer, question, evaluation criteria, and context to the server
+  // and returns the evaluation result, which includes feedback and whether the answer meets the criteria.
   const evaluateAnswerMutation = useMutation({
     mutationFn: async ({ question, answer, evalCriteria, context }: { question: string; answer: string; evalCriteria: string; context: Record<string, string> }) => {
       const response = await apiRequest(
@@ -558,11 +565,14 @@ export default function ChatForm() {
     <div className="flex flex-col min-h-screen">
       <div className="flex justify-center items-center py-10 sm:py-3 md:py-4 px-2 sm:px-4 flex-grow">
         <div className="flex flex-col w-full max-w-3xl mx-auto bg-white shadow-lg rounded-lg overflow-hidden">
-          {/* Form Header */}
+          
+          {/* Header */}
           <div className="px-3 py-3 sm:px-4 sm:py-4 bg-primary text-white flex items-center justify-between shadow-md">
             <div className="flex items-center">
               <ToyBrick className="mr-2 h-5 w-5 sm:h-6 sm:w-6" />
-              <h1 className="text-lg sm:text-xl font-semibold">Tell Us About Your AI Project</h1>
+              <h1 className="text-lg sm:text-xl font-semibold">
+                Tell Us About Your AI Project
+              </h1>
             </div>
             <Button 
               variant="secondary" 
@@ -573,7 +583,7 @@ export default function ChatForm() {
               Start New Project
             </Button>
           </div>
-          
+
           {/* Main Content */}
           {isPreviewMode ? (
             <MarkdownPreview 
@@ -597,33 +607,39 @@ export default function ChatForm() {
                   answers={answers}
                   onRequestDraft={!isComplete ? handleDraftRequest : undefined}
                   currentQuestion={currentQuestion}
-                  isGeneratingDraft={message.questionId === currentQuestion && generateDraftMutation.isPending}
+                  isGeneratingDraft={
+                    message.questionId === currentQuestion &&
+                    generateDraftMutation.isPending
+                  }
                   onIgnore={handleIgnoreButton}
                   nextQuestion={handleNextQuestion}
-                  onEdit={(text) => editInput(text)}
+                  onEdit={editInput}
                   messages={messages}
                 />
               ))}
             </div>
           )}
-          
-          {/* Navigation Area - Only show when not in preview mode and in questions stage */}
+
+          {/* Navigation Buttons */}
           {!isPreviewMode && !isComplete && onboardingStage === 'questions' && currentQuestion >= 0 && showNavigation && (
             <ChatNavigation 
               currentQuestion={currentQuestion}
               totalQuestions={questions.length}
-              isCurrentQuestionRequired={currentQuestion < questions.length && questions[currentQuestion].required}
+              isCurrentQuestionRequired={
+                currentQuestion < questions.length &&
+                questions[currentQuestion].required
+              }
               onPrevious={handlePrevious}
               onSkip={handleSkip}
-              isInputDisabled={isInputDisabled} // Pass isInputDisabled to ChatNavigation
+              isInputDisabled={isInputDisabled}
             />
           )}
-          
-          {/* Visibility Selector - Only show in visibility stage */}
+
+          {/* Terms View Buttons */}
           {!isPreviewMode && onboardingStage === 'terms' && (
             <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
               <div className="flex justify-center gap-5">
-                <Button 
+                <Button
                   onClick={handleShowPreview}
                   className="px-6 py-3 bg-secondary hover:bg-gray-200 text-blue-600 text-base font-medium rounded-lg"
                 >
@@ -641,7 +657,7 @@ export default function ChatForm() {
             </div>
           )}
 
-          {/* Input Area */}
+          {/* Initial Purpose Button */}
           {onboardingStage === 'purpose' && showButton && (
             <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
               <div className="flex justify-center">
@@ -655,21 +671,26 @@ export default function ChatForm() {
             </div>
           )}
 
+          {/* Questions Input */}
           {onboardingStage === 'questions' && !isPreviewMode && (
-            currentQuestion >= 0 && currentQuestion < questions.length && questions[currentQuestion].type === "dropdown" ? (
+            currentQuestion >= 0 &&
+            currentQuestion < questions.length &&
+            questions[currentQuestion].type === "dropdown" ? (
               <form
-                onSubmit={e => {
+                onSubmit={(e) => {
                   e.preventDefault();
                   setIsSubmitting(true);
                   const value = (e.target as any).elements[0].value;
                   handleSubmit(value);
-                  setDraftResponse(value);
-                }}      
+                }}
                 className="border-t p-2 sm:p-3 bg-white flex flex-col gap-2"
               >
-                <select required={questions[currentQuestion].required} className="border rounded px-2 py-1">
+                <select
+                  required={questions[currentQuestion].required}
+                  className="border rounded px-2 py-1"
+                >
                   <option value="">Select status</option>
-                  {questions[currentQuestion].options?.map(option =>
+                  {questions[currentQuestion].options?.map((option) =>
                     typeof option === "string" ? (
                       <option key={option} value={option}>{option}</option>
                     ) : (
@@ -680,19 +701,23 @@ export default function ChatForm() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`mt-2 px-4 py-2 rounded text-white ${isSubmitting ? 'bg-gray-300 cursor-not-allowed' : 'bg-primary'}`}
+                  className={`mt-2 px-4 py-2 rounded text-white ${
+                    isSubmitting ? "bg-gray-300 cursor-not-allowed" : "bg-primary"
+                  }`}
                 >
-                  {isSubmitting ? 'Loading...' : 'Next'}
-                </button>             
+                  {isSubmitting ? "Loading..." : "Next"}
+                </button>
               </form>
             ) : (
-              <ChatInput 
-                placeholder={currentQuestion >= 0 && currentQuestion < questions.length ? questions[currentQuestion].placeholder : ""}
+              <ChatInput
+                placeholder={
+                  currentQuestion >= 0 && currentQuestion < questions.length
+                    ? questions[currentQuestion].placeholder
+                    : ""
+                }
                 onShowPreview={
                   currentQuestion >= questions.length
-                    ? () => {
-                        setOnboardingStage('terms');
-                      }
+                    ? () => setOnboardingStage("terms")
                     : undefined
                 }
                 onSubmit={handleSubmit}
@@ -711,8 +736,9 @@ export default function ChatForm() {
             )
           )}
 
+          {/* Preview Mode Footer */}
           {isPreviewMode && (
-            <ChatInput 
+            <ChatInput
               placeholder=""
               onSubmit={() => {}}
               isComplete={true}
@@ -726,6 +752,7 @@ export default function ChatForm() {
             />
           )}
 
+          {/* Terms Submission */}
           {!isPreviewMode && onboardingStage === 'terms' && (
             <div className="flex flex-col sm:flex-row justify-center gap-3 pb-5">
               <Button
@@ -734,16 +761,17 @@ export default function ChatForm() {
                 className="px-6 py-3 bg-primary hover:bg-primary/80 text-base font-medium rounded-lg flex items-center gap-2"
               >
                 <Database className="h-5 w-5" />
-                {submitProjectMutation.isPending ? 'Saving...' : isSaved ? 'Saved' : 'Submit Project'}
+                {submitProjectMutation.isPending ? "Saving..." : isSaved ? "Saved" : "Submit Project"}
               </Button>
             </div>
           )}
 
+          {/* Profile View */}
           {!isPreviewMode && onboardingStage === 'profile' && (
             <div className="border-t p-3 sm:p-4 bg-white shadow-inner">
               <div className="flex flex-col sm:flex-row justify-center gap-3">
                 <Button
-                  onClick={() => handleProfileChoice('yes')}
+                  onClick={() => handleUpdateProfile("yes")}
                   className="px-6 py-3 bg-primary hover:bg-primary/90 text-base font-medium rounded-lg flex items-center gap-2"
                 >
                   <Link2 className="h-5 w-5" />
