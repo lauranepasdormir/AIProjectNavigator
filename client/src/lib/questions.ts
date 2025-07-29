@@ -35,19 +35,22 @@ export const questions: Question[] = [
   {
     id: 'problem',
     text: "What key problem does your project aim to solve? Who is your intended end-user? Try not to mention your solution yet.",
-    required: true,
+    // required: true,
+    required: false,
     placeholder: "Describe the problem"
   },
   {
     id: 'technology',
     text: "What AI techniques or technologies are you using, and why are they appropriate?",
-    required: true,
+    // required: true,
+    required: false,
     placeholder: "List AI technologies"
   },
   {
     id: 'impact',
     text: "What impact will your project have and who will it affect? What is the business value of this impact?",
-    required: true,
+    // required: true,
+    required: false,
     placeholder: "Describe impact"
   },
   {
@@ -60,6 +63,7 @@ export const questions: Question[] = [
     id: 'status',
     text: "Is your project a work in progress, or completed?",
     required: true,
+    // required: false,
     type: "dropdown",
     placeholder: "e.g., Concept, In development, Prototype, etc.",
     options: [
